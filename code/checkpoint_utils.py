@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import pickle
 import random
 from pathlib import Path
 
@@ -12,6 +13,17 @@ except ImportError:  # pragma: no cover
     np = None
 
 from models import SourceEncoder, TargetEncoder
+
+
+def _torch_load_compat(path, map_location="cpu", *, weights_only=True):
+    try:
+        return torch.load(path, map_location=map_location, weights_only=weights_only)
+    except TypeError:  # pragma: no cover
+        return torch.load(path, map_location=map_location)
+    except pickle.UnpicklingError:
+        if not weights_only:
+            raise
+        return torch.load(path, map_location=map_location, weights_only=False)
 
 
 def set_reproducible_mode(seed, deterministic=True):
@@ -367,19 +379,27 @@ def load_dual_encoder_checkpoint(
         preprocess_info["categorical_cardinalities"],
         embed_dim=int(model_config["embed_dim"]),
         output_dim=int(model_config["output_dim"]),
+        projection_dim=int(model_config.get("projection_dim", 64)),
+        num_risk_levels=int(model_config.get("num_risk_levels", 5)),
+        ratio_dim=int(model_config.get("ratio_dim", model_config["target_input_dim"])),
     ).to(device)
     target_encoder = TargetEncoder(
         input_dim=int(model_config["target_input_dim"]),
         output_dim=int(model_config["output_dim"]),
+        projection_dim=int(model_config.get("projection_dim", 64)),
+        num_risk_levels=int(model_config.get("num_risk_levels", 5)),
+        ratio_dim=int(model_config.get("ratio_dim", model_config["target_input_dim"])),
     ).to(device)
 
-    source_state = torch.load(
+    source_state = _torch_load_compat(
         checkpoint_dir / checkpoint_meta["source_checkpoint"],
         map_location=device,
+        weights_only=True,
     )
-    target_state = torch.load(
+    target_state = _torch_load_compat(
         checkpoint_dir / checkpoint_meta["target_checkpoint"],
         map_location=device,
+        weights_only=True,
     )
 
     source_encoder.load_state_dict(source_state)
@@ -388,7 +408,11 @@ def load_dual_encoder_checkpoint(
     training_state_path = checkpoint_meta.get("training_state_checkpoint")
     training_state = None
     if training_state_path is not None:
-        training_state = torch.load(checkpoint_dir / training_state_path, map_location="cpu")
+        training_state = _torch_load_compat(
+            checkpoint_dir / training_state_path,
+            map_location="cpu",
+            weights_only=False,
+        )
         if optimizer is not None and training_state.get("optimizer_state_dict") is not None:
             optimizer.load_state_dict(training_state["optimizer_state_dict"])
         if restore_training_state:
