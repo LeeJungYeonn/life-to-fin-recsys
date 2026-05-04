@@ -4,6 +4,9 @@
   "model_config": {
     "embed_dim": 16,
     "output_dim": 256,
+    "projection_dim": 64,
+    "num_risk_levels": 5,
+    "ratio_dim": 4,
     "target_input_dim": 4
   },
   "preprocess_info": {
@@ -103,9 +106,27 @@
   "best_params": {
     "batch_size": 256,
     "learning_rate": 0.001,
-    "temperature": 0.1,
+    "temperature": 0.15,
     "output_dim": 256,
-    "epochs_run": 281
+    "projection_dim": 64,
+    "epochs_run": 7,
+    "seed": 42,
+    "dataloader_seed": 42,
+    "validation_ratio": 0.1,
+    "early_stopping_metric": "val_source_ratio_mae",
+    "best_val_source_ratio_mae": 0.17713569999192358,
+    "best_val_source_risk_acc": 0.3429220287660863,
+    "loss_weights": {
+      "contrastive": 1.0,
+      "source_risk": 0.7,
+      "target_risk": 0.3,
+      "source_ratio": 1.0,
+      "target_ratio": 0.4,
+      "centroid": 0.3,
+      "domain": 0.1
+    },
+    "domain_warmup_epochs": 20
   },
-  "best_loss": 4.991333759748018
+  "best_loss": 0.17713569999192358,
+  "training_state_checkpoint": "best_training_state.pth"
 }
