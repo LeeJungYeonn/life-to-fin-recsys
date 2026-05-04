@@ -1,0 +1,111 @@
+{
+  "source_checkpoint": "best_source_encoder.pth",
+  "target_checkpoint": "best_target_encoder.pth",
+  "model_config": {
+    "embed_dim": 16,
+    "output_dim": 256,
+    "target_input_dim": 4
+  },
+  "preprocess_info": {
+    "version": 1,
+    "split": "train",
+    "categorical_cols": [
+      "OCCAT1",
+      "OCCAT2",
+      "INDCAT",
+      "LF",
+      "HOUSECL",
+      "EDCL",
+      "EDUC",
+      "AGECL",
+      "LIFECL",
+      "FAMSTRUCT",
+      "KIDS",
+      "MARRIED",
+      "EXPENSHILO",
+      "WSAVED",
+      "SAVRES1",
+      "SAVRES2",
+      "SAVRES3",
+      "SAVRES4",
+      "SAVRES5",
+      "SAVRES6",
+      "SAVRES7",
+      "SAVRES8",
+      "SAVRES9"
+    ],
+    "categorical_cardinalities": [
+      5,
+      5,
+      5,
+      2,
+      3,
+      5,
+      15,
+      7,
+      7,
+      6,
+      11,
+      3,
+      4,
+      4,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "num_source_features": 23,
+    "x_cat_shape": [
+      13207,
+      23
+    ],
+    "x_cat_hash": "3907fdf438fece05f9e07fd34e2507701eba5196defa5a96a438560a40e0674b",
+    "x_cat_max_per_col": [
+      4,
+      4,
+      4,
+      1,
+      2,
+      4,
+      14,
+      6,
+      6,
+      5,
+      10,
+      2,
+      3,
+      3,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "x_ratio_shape": [
+      13207,
+      4
+    ],
+    "x_ratio_hash": "b8cbc36e300cbe5fc1f0b78d760354fe53e5453f502e3964ccdb1c296459c84d",
+    "labels_shape": [
+      13207
+    ],
+    "labels_hash": "3bc5b89123e1e7765b18e0c54c4808383cf40967ce8808a158daaa09d689e839"
+  },
+  "best_params": {
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "temperature": 0.1,
+    "output_dim": 256,
+    "epochs_run": 281
+  },
+  "best_loss": 4.991333759748018
+}
