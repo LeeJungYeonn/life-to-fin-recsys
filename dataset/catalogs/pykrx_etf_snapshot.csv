@@ -1,0 +1,5 @@
+﻿Ticker,Name,Volatility(%),Risk_Level,Theme_Risk_Level,Provider,Market,Theme,AsOfDate
+290080,RISE 200고배당커버드콜ATM,20.83,4,4.0,RISE,domestic,dividend,20260525
+445690,BNK 주주가치액티브,31.92,5,,BNK,domestic,equity,20260525
+442260,마이티 다이나믹퀀트액티브,41.48,5,,마이티,domestic,equity,20260525
+252400,RISE 200선물레버리지,80.56,5,5.0,RISE,domestic,leveraged,20260525
