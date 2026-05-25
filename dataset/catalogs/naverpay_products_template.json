@@ -1,0 +1,58 @@
+[
+  {
+    "product_id": "naverpay:deposit:standardchartered",
+    "provider": "SC제일은행",
+    "name": "e-그린세이브예금",
+    "category": "deposit",
+    "product_type": "deposit",
+    "base_rate": 3.2,
+    "max_rate": 3.5,
+    "min_term_months": 1,
+    "max_term_months": 12,
+    "principal_protection": true,
+    "deposit_insurance": true,
+    "product_url": "https://pay.naver.com/savings/detail/44a7c108de634d7bc99b331a1ba6cd2c"
+  },
+  {
+    "product_id": "naverpay:saving:jbbank",
+    "provider": "전북은행",
+    "name": "JB 슈퍼씨드 적금",
+    "category": "saving",
+    "product_type": "saving",
+    "base_rate": 3.3,
+    "max_rate": 13.3,
+    "min_term_months": 12,
+    "max_term_months": 12,
+    "principal_protection": true,
+    "deposit_insurance": true,
+    "product_url": "https://pay.naver.com/savings/detail/461215006431af835f17ed87b11e7de2"
+  },
+{
+    "product_id": "naverpay:parking:IBK",
+    "provider": "IBK기업은행",
+    "name": "IBK부가세모으기통장",
+    "category": "parking",
+    "product_type": "parking",
+    "base_rate": 1.0,
+    "max_rate": 5.0,
+    "min_term_months": 0,
+    "max_term_months": 0,
+    "principal_protection": true,
+    "deposit_insurance": true,
+    "product_url": "https://pay.naver.com/savings/detail/aff5817fa92fd40f8eea36109240b726"
+  },
+  {
+    "product_id": "naverpay:cma:miraeasset",
+    "provider": "미래에셋증권",
+    "name": "미래에셋증권 CMA-RP 네이버통장 (RP형)",
+    "category": "cma",
+    "product_type": "cma",
+    "base_rate": 1.95,
+    "max_rate": 2.50,
+    "min_term_months": 12,
+    "max_term_months": 12,
+    "principal_protection": false,
+    "deposit_insurance": false,
+    "product_url": "https://pay.naver.com/savings/detail/ac76adc3c871c900c9563131589d6b11"
+  }
+]

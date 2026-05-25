@@ -1,0 +1,31 @@
+{
+  "categorical_features": {
+    "OCCAT1": 1,
+    "OCCAT2": 2,
+    "INDCAT": 2,
+    "LF": 1,
+    "HOUSECL": 1,
+    "EDCL": 3,
+    "EDUC": 9,
+    "AGECL": 6,
+    "LIFECL": 5,
+    "FAMSTRUCT": 5,
+    "KIDS": 0,
+    "MARRIED": 1,
+    "EXPENSHILO": 3,
+    "WSAVED": 3,
+    "SAVRES1": 0,
+    "SAVRES2": 0,
+    "SAVRES3": 1,
+    "SAVRES4": 0,
+    "SAVRES5": 0,
+    "SAVRES6": 0,
+    "SAVRES7": 0,
+    "SAVRES8": 0,
+    "SAVRES9": 0
+  },
+  "options": {
+    "top_k": 5,
+    "allow_cma": false
+  }
+}
