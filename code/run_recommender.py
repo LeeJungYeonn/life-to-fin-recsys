@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
-from recsys.pykrx_catalog import load_snapshot as load_pykrx_snapshot
+from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
 from recsys.ranker import UserRequest, recommend_products
 
 
@@ -39,8 +39,11 @@ def main() -> None:
     else:
         products.extend(load_default_snapshot())
 
-    if args.pykrx_path is not None and args.pykrx_path.exists():
-        products.extend(load_pykrx_snapshot(args.pykrx_path))
+    pykrx_path = args.pykrx_path
+    if pykrx_path is None:
+        pykrx_path = find_default_snapshot_path()
+    if pykrx_path is not None and pykrx_path.exists():
+        products.extend(load_pykrx_snapshot(pykrx_path))
 
     result = recommend_products(
         products,

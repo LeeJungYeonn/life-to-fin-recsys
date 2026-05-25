@@ -7,6 +7,11 @@ import pandas as pd
 
 from .product_schema import Product, ProductExposure
 
+DEFAULT_SNAPSHOT_CANDIDATES = [
+    Path("../dataset/catalogs/pykrx_etf_snapshot.csv"),
+    Path("dataset/catalogs/pykrx_etf_snapshot.csv"),
+]
+
 
 def classify_etf_exposure(name: str) -> ProductExposure:
     lowered = name.lower()
@@ -25,14 +30,17 @@ def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
     products = []
     for row in snapshot.to_dict(orient="records"):
         name = str(row["Name"])
+        risk_level = row.get("Risk_Level")
+        category = str(int(risk_level)) if pd.notna(risk_level) else "unknown"
+        provider = str(row.get("Provider") or name.split()[0] or "ETF")
         products.append(
             Product(
                 product_id=f"pykrx:{row['Ticker']}",
                 source="pykrx",
-                provider=str(row.get("Provider", "ETF")),
+                provider=provider,
                 name=name,
                 product_type="etf",
-                category=str(row.get("Risk_Level", "unknown")),
+                category=category,
                 principal_protection=False,
                 deposit_insurance=False,
                 base_rate=None,
@@ -40,8 +48,22 @@ def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
                 volatility=float(row["Volatility(%)"]) if "Volatility(%)" in row and pd.notna(row["Volatility(%)"]) else None,
                 liquidity_tier="high",
                 exposure=classify_etf_exposure(name),
-                tags=[tag for tag in [row.get("Market"), row.get("Theme")] if isinstance(tag, str) and tag],
-                metadata={"ticker": row["Ticker"]},
+                tags=[
+                    tag
+                    for tag in [
+                        row.get("Market"),
+                        row.get("Theme"),
+                        f"risk_{category}" if category != "unknown" else None,
+                    ]
+                    if isinstance(tag, str) and tag
+                ],
+                metadata={
+                    "ticker": row["Ticker"],
+                    "risk_level": int(risk_level) if pd.notna(risk_level) else None,
+                    "theme_risk_level": int(row["Theme_Risk_Level"])
+                    if "Theme_Risk_Level" in row and pd.notna(row["Theme_Risk_Level"])
+                    else None,
+                },
             )
         )
     return products
@@ -50,6 +72,23 @@ def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
 def load_snapshot(path: Path) -> List[Product]:
     frame = pd.read_csv(path)
     return build_products_from_snapshot(frame)
+
+
+def find_default_snapshot_path() -> Path | None:
+    for candidate in DEFAULT_SNAPSHOT_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def load_default_snapshot() -> List[Product]:
+    path = find_default_snapshot_path()
+    if path is None:
+        raise FileNotFoundError(
+            "pykrx ETF snapshot file not found. Expected one of: "
+            + ", ".join(str(path) for path in DEFAULT_SNAPSHOT_CANDIDATES)
+        )
+    return load_snapshot(path)
 
 
 def try_fetch_live_snapshot(
