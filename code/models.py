@@ -13,6 +13,8 @@ class EncoderOutput:
     hidden: torch.Tensor
     embedding: torch.Tensor
     risk_logits: Optional[torch.Tensor] = None
+    allocation_logits: Optional[torch.Tensor] = None
+    allocation_probs: Optional[torch.Tensor] = None
     ratio_logits: Optional[torch.Tensor] = None
     ratio_probs: Optional[torch.Tensor] = None
 
@@ -30,12 +32,13 @@ class SourceEncoder(nn.Module):
         projection_dim=64,
         num_risk_levels=5,
         ratio_dim=4,
+        allocation_dim=None,
     ):
         super().__init__()
         self.output_dim = output_dim
         self.projection_dim = projection_dim
         self.num_risk_levels = num_risk_levels
-        self.ratio_dim = ratio_dim
+        self.ratio_dim = allocation_dim or ratio_dim
 
         self.embeddings = nn.ModuleList(
             [nn.Embedding(num_classes, embed_dim) for num_classes in cardinalities]
@@ -62,7 +65,7 @@ class SourceEncoder(nn.Module):
         self.ratio_head = nn.Sequential(
             nn.Linear(output_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, ratio_dim),
+            nn.Linear(hidden_dim, self.ratio_dim),
         )
 
     def forward(self, x_cat):
@@ -81,15 +84,17 @@ class SourceEncoder(nn.Module):
         embedding = self.proj2(embedding)
 
         risk_logits = self.risk_head(hidden)
-        ratio_logits = self.ratio_head(hidden)
-        ratio_probs = F.softmax(ratio_logits, dim=1)
+        allocation_logits = self.ratio_head(hidden)
+        allocation_probs = F.softmax(allocation_logits, dim=1)
 
         return EncoderOutput(
             hidden=hidden,
             embedding=embedding,
             risk_logits=risk_logits,
-            ratio_logits=ratio_logits,
-            ratio_probs=ratio_probs,
+            allocation_logits=allocation_logits,
+            allocation_probs=allocation_probs,
+            ratio_logits=allocation_logits,
+            ratio_probs=allocation_probs,
         )
 
 
@@ -101,12 +106,13 @@ class TargetEncoder(nn.Module):
         projection_dim=64,
         num_risk_levels=5,
         ratio_dim=4,
+        allocation_dim=None,
     ):
         super().__init__()
         self.output_dim = output_dim
         self.projection_dim = projection_dim
         self.num_risk_levels = num_risk_levels
-        self.ratio_dim = ratio_dim
+        self.ratio_dim = allocation_dim or ratio_dim
 
         self.mlp = nn.Sequential(
             nn.Linear(input_dim, 64),
@@ -130,7 +136,7 @@ class TargetEncoder(nn.Module):
         self.ratio_head = nn.Sequential(
             nn.Linear(output_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, ratio_dim),
+            nn.Linear(hidden_dim, self.ratio_dim),
         )
 
     def forward(self, x_ratio):
@@ -142,13 +148,15 @@ class TargetEncoder(nn.Module):
         embedding = self.proj2(embedding)
 
         risk_logits = self.risk_head(hidden)
-        ratio_logits = self.ratio_head(hidden)
-        ratio_probs = F.softmax(ratio_logits, dim=1)
+        allocation_logits = self.ratio_head(hidden)
+        allocation_probs = F.softmax(allocation_logits, dim=1)
 
         return EncoderOutput(
             hidden=hidden,
             embedding=embedding,
             risk_logits=risk_logits,
-            ratio_logits=ratio_logits,
-            ratio_probs=ratio_probs,
+            allocation_logits=allocation_logits,
+            allocation_probs=allocation_probs,
+            ratio_logits=allocation_logits,
+            ratio_probs=allocation_probs,
         )
