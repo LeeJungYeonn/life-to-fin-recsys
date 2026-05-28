@@ -1,5 +1,33 @@
 ﻿Ticker,Name,Volatility(%),Risk_Level,Theme_Risk_Level,Provider,Market,Theme,AsOfDate
-290080,RISE 200고배당커버드콜ATM,20.83,4,4.0,RISE,domestic,dividend,20260525
-445690,BNK 주주가치액티브,31.92,5,,BNK,domestic,equity,20260525
-442260,마이티 다이나믹퀀트액티브,41.48,5,,마이티,domestic,equity,20260525
-252400,RISE 200선물레버리지,80.56,5,5.0,RISE,domestic,leveraged,20260525
+0091C0,KODEX 미국10년국채액티브(H),5.02,2,,KODEX,global,equity,20260528
+295000,RISE 국채선물10년,5.88,2,,RISE,domestic,equity,20260528
+438570,SOL 국고채10년,6.42,2,2.0,SOL,domestic,bond,20260528
+292560,TIGER 일본엔선물,7.9,2,,TIGER,global,equity,20260528
+267440,RISE 미국장기국채선물(H),9.24,2,,RISE,global,equity,20260528
+276970,KODEX 미국S&P500배당귀족커버드콜(합성 H),9.54,2,4.0,KODEX,global,dividend,20260528
+437350,RISE 미국단기투자등급회사채액티브,9.72,2,,RISE,global,bond,20260528
+453850,ACE 미국30년국채액티브(H),9.97,2,,ACE,global,equity,20260528
+468370,KODEX iShares미국인플레이션국채액티브,10.0,3,,KODEX,global,equity,20260528
+0082V0,KODEX TDF2060액티브 적격,10.83,3,,KODEX,domestic,retirement,20260528
+439870,KODEX 국고채30년액티브,11.61,3,2.0,KODEX,domestic,bond,20260528
+449770,KIWOOM 미국S&P500,11.99,3,4.0,KIWOOM,global,sp500,20260528
+499150,SOL 미국S&P500엔화노출(H),12.85,3,4.0,SOL,global,sp500,20260528
+483290,KODEX 미국배당다우존스타겟커버드콜,13.51,3,3.0,KODEX,global,dividend,20260528
+0107F0,KIWOOM 미국고배당&AI테크,14.25,3,3.0,KIWOOM,global,dividend,20260528
+463300,RISE 중국본토CSI300,15.0,3,,RISE,global,equity,20260528
+0041E0,KODEX 미국S&P500액티브,15.05,4,4.0,KODEX,global,sp500,20260528
+462340,에셋플러스 글로벌다이나믹시니어액티브,16.19,4,,에셋플러스,global,equity,20260528
+483240,TIGER 미국나스닥100ETF선물,17.3,4,4.0,TIGER,global,nasdaq100,20260528
+409810,KODEX 미국나스닥100선물인버스(H),18.8,4,5.0,KODEX,global,inverse,20260528
+477490,에셋플러스 글로벌일등기업포커스10액티브,19.65,4,,에셋플러스,global,equity,20260528
+0113G0,KoAct 미국바이오헬스케어액티브,21.38,4,5.0,KoAct,global,bio,20260528
+195980,PLUS 신흥국MSCI(합성 H),23.43,4,,PLUS,global,equity,20260528
+371160,TIGER 차이나항셍테크,24.99,4,,TIGER,domestic,equity,20260528
+174350,TIGER 로우볼,25.01,5,,TIGER,domestic,equity,20260528
+0082F0,HANARO 유럽방산,29.8,5,,HANARO,global,equity,20260528
+402460,HANARO Fn K-메타버스MZ,33.54,5,,HANARO,domestic,equity,20260528
+0015B0,KoAct 미국나스닥성장기업액티브,37.4,5,,KoAct,global,equity,20260528
+495050,RISE 코리아밸류업,40.12,5,,RISE,domestic,equity,20260528
+332940,HANARO MSCI Korea TR,43.33,5,,HANARO,global,equity,20260528
+438320,TIGER 차이나항셍테크레버리지(합성 H),52.12,5,5.0,TIGER,domestic,leveraged,20260528
+0104G0,PLUS K방산레버리지,113.87,5,5.0,PLUS,domestic,leveraged,20260528
