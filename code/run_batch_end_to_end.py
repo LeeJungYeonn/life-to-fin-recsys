@@ -71,7 +71,12 @@ def _build_summary_rows(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input-csv", type=Path, default=Path("dataset/anchor_labeled_data.csv"))
+    parser.add_argument(
+        "--input-csv",
+        type=Path,
+        default=Path("dataset/test.csv"),
+        help="Use dataset/test.csv for held-out evaluation, or anchor_labeled_data.csv for full-dataset batch inference.",
+    )
     parser.add_argument("--processed-dir", type=Path, default=Path("dataset/processed"))
     parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
     parser.add_argument("--checkpoint-prefix", type=str, default=None)
