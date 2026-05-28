@@ -1,0 +1,114 @@
+{
+  "split": "test",
+  "num_examples": 1469,
+  "checkpoint_prefix": "allocation_best",
+  "validation_warnings": [
+    "Current split 'test' differs from checkpoint split 'train'. Exact tensor hash validation was skipped."
+  ],
+  "source_risk_acc": 0.33287950987066034,
+  "source_risk_macro_f1": 0.2597925496404199,
+  "target_risk_acc": 0.9040163376446563,
+  "target_risk_macro_f1": 0.8891154264238967,
+  "source_alloc_mae": 0.15499094128608704,
+  "target_alloc_mae": 0.009350900538265705,
+  "source_confusion_matrix": [
+    [
+      268,
+      130,
+      81,
+      32,
+      0
+    ],
+    [
+      53,
+      66,
+      77,
+      51,
+      0
+    ],
+    [
+      39,
+      60,
+      107,
+      60,
+      0
+    ],
+    [
+      36,
+      52,
+      83,
+      48,
+      0
+    ],
+    [
+      36,
+      47,
+      88,
+      55,
+      0
+    ]
+  ],
+  "retrieval": {
+    "pair_recall@1": 0.0013614703880190605,
+    "pair_recall@5": 0.009530292716133424,
+    "pair_recall@10": 0.016337644656228726,
+    "pair_mrr": 0.010439418878856774,
+    "label_recall@1": 0.336283185840708,
+    "label_recall@5": 0.46698434309053777,
+    "label_recall@10": 0.5180394826412525,
+    "label_mrr": 0.3986568165845674,
+    "cluster_recall@1": 0.22328114363512594,
+    "cluster_recall@5": 0.2702518720217835,
+    "cluster_recall@10": 0.29611980939414567,
+    "cluster_mrr": 0.2518815785570969
+  },
+  "probe": {
+    "source": {
+      "accuracy_mean": 0.3553342155975018,
+      "accuracy_std": 0.014770662149336049,
+      "macro_f1_mean": 0.256287246064913,
+      "macro_f1_std": 0.012097067299684018
+    },
+    "target": {
+      "accuracy_mean": 0.901980450883425,
+      "accuracy_std": 0.018399403312680244,
+      "macro_f1_mean": 0.887993076519422,
+      "macro_f1_std": 0.021369340508945518
+    }
+  },
+  "domain_classifier": {
+    "accuracy_mean": 0.7654845924741276,
+    "accuracy_std": 0.013964217290188555
+  },
+  "silhouette": {
+    "risk_cosine": 0.06808999180793762,
+    "modality_cosine": 0.002338389866054058
+  },
+  "centroid_distance_by_class": [
+    {
+      "risk_label": 0,
+      "euclidean_distance": 0.16848255693912506,
+      "cosine_distance": 0.014174580574035645
+    },
+    {
+      "risk_label": 1,
+      "euclidean_distance": 0.14306439459323883,
+      "cosine_distance": 0.011117279529571533
+    },
+    {
+      "risk_label": 2,
+      "euclidean_distance": 0.12713612616062164,
+      "cosine_distance": 0.00858837366104126
+    },
+    {
+      "risk_label": 3,
+      "euclidean_distance": 0.19989201426506042,
+      "cosine_distance": 0.021538376808166504
+    },
+    {
+      "risk_label": 4,
+      "euclidean_distance": 0.284434974193573,
+      "cosine_distance": 0.0429379940032959
+    }
+  ]
+}
