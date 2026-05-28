@@ -30,10 +30,12 @@ THEME_KEYWORDS = {
     "cash": ["파킹", "머니마켓", "mmf"],
     "retirement": ["연금", "은퇴", "target date", "tdf"],
     "dividend": ["고배당", "배당성장", "커버드콜", "dividend"],
+    "quality": ["퀄리티", "quality", "우량", "블루칩"],
     "leveraged": ["레버리지", "2x"],
     "inverse": ["인버스"],
     "bio": ["바이오"],
     "battery": ["2차전지"],
+    "semiconductor": ["반도체", "semiconductor"],
     "nasdaq100": ["나스닥100", "nasdaq100"],
     "sp500": ["s&p500"],
     "index200": ["코스피200", "200"],
@@ -57,6 +59,82 @@ GLOBAL_MARKET_KEYWORDS = [
     "hong kong",
     "taiwan",
     "brazil",
+]
+
+QUALITY_THEME_SCORES = {
+    2: {
+        "bond": 6.0,
+        "cash": 5.5,
+        "quality": 4.5,
+        "dividend": 4.0,
+        "sp500": 3.5,
+        "index200": 3.0,
+        "retirement": 3.0,
+        "nasdaq100": 2.0,
+        "equity": 1.0,
+    },
+    3: {
+        "quality": 5.0,
+        "dividend": 4.5,
+        "sp500": 4.5,
+        "retirement": 4.0,
+        "index200": 4.0,
+        "nasdaq100": 3.5,
+        "bond": 3.0,
+        "semiconductor": 3.0,
+        "equity": 2.0,
+    },
+    4: {
+        "quality": 5.5,
+        "sp500": 5.5,
+        "nasdaq100": 5.0,
+        "semiconductor": 4.5,
+        "index200": 4.0,
+        "dividend": 3.5,
+        "equity": 2.0,
+        "bond": 1.0,
+    },
+    5: {
+        "quality": 5.5,
+        "nasdaq100": 5.5,
+        "semiconductor": 5.0,
+        "sp500": 4.5,
+        "dividend": 2.5,
+        "index200": 2.5,
+        "equity": 2.0,
+    },
+}
+
+CORE_QUALITY_KEYWORDS = [
+    "s&p500",
+    "나스닥100",
+    "nasdaq100",
+    "코스피200",
+    "msci",
+    "배당귀족",
+    "퀄리티",
+    "quality",
+    "우량",
+    "블루칩",
+]
+
+PROMISING_GROWTH_KEYWORDS = [
+    "반도체",
+    "semiconductor",
+    "ai테크",
+    "인공지능",
+    "전력",
+    "인프라",
+]
+
+SPECULATIVE_THEME_KEYWORDS = [
+    "레버리지",
+    "인버스",
+    "2x",
+    "바이오",
+    "2차전지",
+    "메타버스",
+    "게임",
 ]
 
 
@@ -114,31 +192,109 @@ def infer_provider(name: str) -> str:
     return tokens[0] if tokens else "ETF"
 
 
+def compute_preference_score(
+    name: str,
+    *,
+    risk_level: int,
+    theme: str,
+    theme_risk_level: int | None,
+) -> tuple[float, str]:
+    lowered = name.lower()
+    score = QUALITY_THEME_SCORES.get(risk_level, {}).get(theme, 0.0)
+    reasons = []
+
+    if any(keyword in lowered for keyword in CORE_QUALITY_KEYWORDS):
+        score += 3.0
+        reasons.append("core_index")
+
+    if any(keyword in lowered for keyword in PROMISING_GROWTH_KEYWORDS):
+        score += 2.0 if risk_level >= 4 else 1.0
+        reasons.append("growth_sector")
+
+    if any(keyword in lowered for keyword in SPECULATIVE_THEME_KEYWORDS):
+        score -= 6.0
+        reasons.append("speculative_penalty")
+
+    if theme_risk_level is not None and theme_risk_level >= 5:
+        score -= 1.5
+        reasons.append("theme_risk_penalty")
+
+    return score, ",".join(reasons) if reasons else "balanced"
+
+
+def compute_liquidity_metrics(history: pd.DataFrame) -> tuple[float, float]:
+    if "거래대금" not in history:
+        return 0.0, 0.0
+
+    trading_value = history["거래대금"].dropna()
+    if trading_value.empty:
+        return 0.0, 0.0
+
+    average_20d = float(trading_value.tail(20).mean())
+    latest = float(trading_value.iloc[-1])
+    return average_20d, latest
+
+
+def preferred_themes_for_risk_level(risk_level: int) -> list[str]:
+    theme_scores = QUALITY_THEME_SCORES.get(risk_level, {})
+    return [
+        theme
+        for theme, _ in sorted(theme_scores.items(), key=lambda item: (-item[1], item[0]))
+        if theme != "equity"
+    ]
+
+
 def select_representative_rows(frame: pd.DataFrame, per_risk_level: int) -> pd.DataFrame:
     selected_frames = []
     for risk_level in sorted(frame["Risk_Level"].unique()):
-        group = frame[frame["Risk_Level"] == risk_level].sort_values(
-            ["Volatility(%)", "Name", "Ticker"]
+        group = frame[frame["Risk_Level"] == risk_level].copy()
+        group["Liquidity_Score"] = group["AvgTradingValue(20D)"].rank(
+            method="average", pct=True
+        ).fillna(0.0) * 4.0
+        group["Stability_Score"] = (
+            1.0 - group["Volatility(%)"].rank(method="average", pct=True).fillna(1.0)
+        ) * 1.5
+        group["Selection_Score"] = (
+            group["Preference_Score"] + group["Liquidity_Score"] + group["Stability_Score"]
+        )
+        group = group.sort_values(
+            ["Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
+            ascending=[False, False, True, True, True],
         )
         if len(group) <= per_risk_level:
             selected_frames.append(group)
             continue
 
-        raw_indices = np.linspace(0, len(group) - 1, per_risk_level)
-        indices = sorted({int(round(value)) for value in raw_indices})
-        if len(indices) < per_risk_level:
-            for candidate in range(len(group)):
-                if candidate not in indices:
-                    indices.append(candidate)
-                if len(indices) == per_risk_level:
-                    break
-            indices.sort()
-        selected_frames.append(group.iloc[indices])
+        selected_indices = []
+        selected_themes = set()
+
+        for theme in preferred_themes_for_risk_level(int(risk_level)):
+            candidates = group[
+                (group["Theme"] == theme) & (~group.index.isin(selected_indices))
+            ]
+            if candidates.empty:
+                continue
+            selected_indices.append(candidates.index[0])
+            selected_themes.add(theme)
+            if len(selected_indices) == per_risk_level:
+                break
+
+        remaining = group.loc[~group.index.isin(selected_indices)].copy()
+        remaining["ThemeSeen"] = remaining["Theme"].isin(selected_themes)
+        remaining = remaining.sort_values(
+            ["ThemeSeen", "Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
+            ascending=[True, False, False, True, True, True],
+        )
+        selected_indices.extend(remaining.head(per_risk_level - len(selected_indices)).index.tolist())
+        selected_frames.append(group.loc[selected_indices])
 
     result = pd.concat(selected_frames, ignore_index=True)
-    return result.sort_values(["Risk_Level", "Volatility(%)", "Name", "Ticker"]).reset_index(
-        drop=True
-    )
+    if "ThemeSeen" in result.columns:
+        result = result.drop(columns=["ThemeSeen"])
+    return result.sort_values(
+        ["Risk_Level", "Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
+        ascending=[True, False, False, True, True, True],
+    ).reset_index(drop=True)
 
 
 def build_snapshot(
@@ -182,16 +338,30 @@ def build_snapshot(
             continue
 
         volatility_percent = float(daily_returns.std() * np.sqrt(252) * 100.0)
+        risk_level = classify_volatility_risk_level(volatility_percent)
+        theme = infer_theme(name)
+        theme_risk_level = infer_theme_risk_level(name)
+        average_trading_value, latest_trading_value = compute_liquidity_metrics(history)
+        preference_score, selection_reason = compute_preference_score(
+            name,
+            risk_level=risk_level,
+            theme=theme,
+            theme_risk_level=theme_risk_level,
+        )
         rows.append(
             {
                 "Ticker": ticker,
                 "Name": name,
                 "Volatility(%)": round(volatility_percent, 2),
-                "Risk_Level": classify_volatility_risk_level(volatility_percent),
-                "Theme_Risk_Level": infer_theme_risk_level(name),
+                "Risk_Level": risk_level,
+                "Theme_Risk_Level": theme_risk_level,
                 "Provider": infer_provider(name),
                 "Market": infer_market(name),
-                "Theme": infer_theme(name),
+                "Theme": theme,
+                "AvgTradingValue(20D)": round(average_trading_value, 2),
+                "LatestTradingValue": round(latest_trading_value, 2),
+                "Preference_Score": round(preference_score, 2),
+                "Selection_Reason": selection_reason,
                 "AsOfDate": end_date,
             }
         )
@@ -201,7 +371,10 @@ def build_snapshot(
     if not rows:
         raise ValueError("ETF 스냅샷 생성 결과가 비어 있습니다.")
 
-    frame = pd.DataFrame(rows).sort_values(["Risk_Level", "Volatility(%)", "Name", "Ticker"])
+    frame = pd.DataFrame(rows).sort_values(
+        ["Risk_Level", "Preference_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
+        ascending=[True, False, False, True, True, True],
+    )
     frame = frame[frame["Risk_Level"].isin(list(risk_levels))].reset_index(drop=True)
     if frame.empty:
         raise ValueError(f"선택한 risk_level={list(risk_levels)} 에 해당하는 ETF가 없습니다.")
