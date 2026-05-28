@@ -1,0 +1,50 @@
+{
+  "input_csv": "dataset\\anchor_labeled_data.csv",
+  "checkpoint_prefix": "smoke_allocation",
+  "num_examples": 1,
+  "validation_warnings": [
+    "Exact tensor hash validation was skipped because current_split was not provided."
+  ],
+  "model_config": {
+    "embed_dim": 16,
+    "output_dim": 256,
+    "projection_dim": 64,
+    "num_risk_levels": 5,
+    "ratio_dim": 6,
+    "allocation_dim": 6,
+    "target_input_dim": 6
+  },
+  "summary_metrics": {
+    "pred_vs_aux_allocation_mae_mean": 0.17786742746829987,
+    "pred_vs_aux_risk_match_rate": 0.0,
+    "overlap_rescaled_share": 1.0
+  },
+  "rows": [
+    {
+      "CASEID": 145156,
+      "predicted_risk_level_direct": 1,
+      "predicted_risk_level_heuristic": 1,
+      "aux_risk_label": 4,
+      "aux_allocation_mae": 0.17786742746829987,
+      "rescaled_overlap_flag": true,
+      "coverage_before_rescale": 1.0000000001334353,
+      "coverage_after_rescale": 1.0,
+      "top_ranked_product_id": "naverpay:deposit:standardchartered",
+      "top_ranked_product_name": "e-그린세이브예금",
+      "top_basket_product_id": "naverpay:deposit:standardchartered",
+      "top_basket_weight": 0.22996805608272552,
+      "pred_cash_eq": 0.2863919138908386,
+      "aux_cash_eq": 0.08657519519329071,
+      "pred_taxable_equity": 0.17166203260421753,
+      "aux_taxable_equity": 0.6877979636192322,
+      "pred_taxable_bond": 0.04196390137076378,
+      "aux_taxable_bond": 0.0,
+      "pred_retirement_equity": 0.12788397073745728,
+      "aux_retirement_equity": 0.0445188507437706,
+      "pred_retirement_safe": 0.16364161670207977,
+      "aux_retirement_safe": 0.1811079978942871,
+      "pred_other_fin": 0.2084565907716751,
+      "aux_other_fin": 0.0
+    }
+  ]
+}
