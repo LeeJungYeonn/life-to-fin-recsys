@@ -6,6 +6,8 @@ from typing import List
 
 from .product_schema import Product, ProductExposure
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 NAVERPAY_CATEGORY_URLS = {
     "deposit": "https://pay.naver.com/savings/list/deposit",
@@ -15,10 +17,8 @@ NAVERPAY_CATEGORY_URLS = {
 }
 
 DEFAULT_SNAPSHOT_CANDIDATES = [
-    Path("../dataset/catalogs/naverpay_products.json"),
-    Path("../dataset/catalogs/naverpay_products_template.json"),
-    Path("dataset/catalogs/naverpay_products.json"),
-    Path("dataset/catalogs/naverpay_products_template.json"),
+    REPO_ROOT / "dataset" / "catalogs" / "naverpay_products.json",
+    REPO_ROOT / "dataset" / "catalogs" / "naverpay_products_template.json",
 ]
 
 

@@ -9,6 +9,8 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 try:
     from dotenv import load_dotenv
 except ImportError:  # pragma: no cover - optional dependency
@@ -386,7 +388,7 @@ def main() -> None:
     parser.add_argument(
         "--output-path",
         type=Path,
-        default=Path("dataset/catalogs/pykrx_etf_snapshot.csv"),
+        default=REPO_ROOT / "dataset" / "catalogs" / "pykrx_etf_snapshot.csv",
         help="ETF 추천 후보 CSV 저장 경로",
     )
     parser.add_argument(

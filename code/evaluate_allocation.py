@@ -18,6 +18,8 @@ from checkpoint_utils import load_dual_encoder_checkpoint
 from contrastive_utils import ordinal_logits_to_label
 from portfolio_schema import CATEGORICAL_COLUMNS
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def evaluate_linear_probe(features: np.ndarray, labels: np.ndarray) -> dict[str, float]:
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -104,8 +106,8 @@ def centroid_distance_by_class(src: np.ndarray, tgt: np.ndarray, labels: np.ndar
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--processed-dir", type=Path, default=Path("../dataset/processed"))
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("../checkpoints"))
+    parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
+    parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
     parser.add_argument("--prefix", type=str, default="allocation_best")
     parser.add_argument("--split", type=str, default="test", choices=["train", "test"])
     parser.add_argument("--report-path", type=Path, default=None)

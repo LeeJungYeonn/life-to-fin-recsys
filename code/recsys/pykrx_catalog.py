@@ -7,9 +7,10 @@ import pandas as pd
 
 from .product_schema import Product, ProductExposure
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 DEFAULT_SNAPSHOT_CANDIDATES = [
-    Path("../dataset/catalogs/pykrx_etf_snapshot.csv"),
-    Path("dataset/catalogs/pykrx_etf_snapshot.csv"),
+    REPO_ROOT / "dataset" / "catalogs" / "pykrx_etf_snapshot.csv",
 ]
 
 

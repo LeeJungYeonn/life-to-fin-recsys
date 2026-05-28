@@ -16,6 +16,8 @@ from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as lo
 from recsys.ranker import UserRequest, recommend_products
 from run_end_to_end import _heuristic_risk_from_allocation, _resolve_checkpoint_prefix
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _load_products(naverpay_path: Path | None, pykrx_path: Path | None):
     products = []
@@ -74,11 +76,11 @@ def main() -> None:
     parser.add_argument(
         "--input-csv",
         type=Path,
-        default=Path("dataset/test.csv"),
+        default=REPO_ROOT / "dataset" / "test.csv",
         help="Use dataset/test.csv for held-out evaluation, or anchor_labeled_data.csv for full-dataset batch inference.",
     )
-    parser.add_argument("--processed-dir", type=Path, default=Path("dataset/processed"))
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
+    parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
+    parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
     parser.add_argument("--checkpoint-prefix", type=str, default=None)
     parser.add_argument("--naverpay-path", type=Path, default=None)
     parser.add_argument("--pykrx-path", type=Path, default=None)
@@ -87,8 +89,8 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--allow-cma", action="store_true")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--output-csv", type=Path, default=Path("checkpoints/batch_end_to_end_summary.csv"))
-    parser.add_argument("--output-json", type=Path, default=Path("checkpoints/batch_end_to_end_details.json"))
+    parser.add_argument("--output-csv", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_summary.csv")
+    parser.add_argument("--output-json", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_details.json")
     args = parser.parse_args()
 
     df = pd.read_csv(args.input_csv)

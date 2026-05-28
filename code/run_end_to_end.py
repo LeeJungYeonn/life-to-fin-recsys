@@ -14,6 +14,8 @@ from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load
 from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
 from recsys.ranker import UserRequest, recommend_products
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _resolve_checkpoint_prefix(checkpoint_dir: Path, requested_prefix: str | None) -> str:
     if requested_prefix:
@@ -65,8 +67,8 @@ def _heuristic_risk_from_allocation(allocation: np.ndarray) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, required=True, help="Path to user profile JSON")
-    parser.add_argument("--processed-dir", type=Path, default=Path("dataset/processed"))
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
+    parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
+    parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
     parser.add_argument("--checkpoint-prefix", type=str, default=None)
     parser.add_argument("--naverpay-path", type=Path, default=None)
     parser.add_argument("--pykrx-path", type=Path, default=None)

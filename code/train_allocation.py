@@ -30,6 +30,8 @@ from contrastive_utils import (
 from models import SourceEncoder, TargetEncoder
 from portfolio_schema import CATEGORICAL_COLUMNS
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 class AllocationDataset(Dataset):
     def __init__(self, x_cat, x_alloc, labels, clusters):
@@ -94,8 +96,8 @@ def evaluate_model(source_encoder, target_encoder, dataloader, device):
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--processed-dir", type=Path, default=Path("../dataset/processed"))
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("../checkpoints"))
+    parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
+    parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
     parser.add_argument("--prefix", type=str, default="allocation_best")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--epochs", type=int, default=80)
