@@ -10,11 +10,16 @@ import torch
 
 from checkpoint_utils import load_dual_encoder_checkpoint
 from contrastive_utils import ordinal_logits_to_label
-from portfolio_schema import BUCKET_COLUMNS, CATEGORICAL_COLUMNS, build_allocation_dataset
+from portfolio_schema import (
+    BUCKET_COLUMNS,
+    CATEGORICAL_COLUMNS,
+    build_allocation_dataset,
+    derive_risk_label_from_allocation_vector,
+)
 from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
 from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
 from recsys.ranker import UserRequest, recommend_products
-from run_end_to_end import _heuristic_risk_from_allocation, _resolve_checkpoint_prefix
+from run_end_to_end import _resolve_checkpoint_prefix
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,6 +44,7 @@ def _build_summary_rows(
     predicted_allocations: np.ndarray,
     direct_risk: np.ndarray,
     heuristic_risk: np.ndarray,
+    used_risk: np.ndarray,
     aux_allocations: np.ndarray,
     aux_risk: np.ndarray,
     quality: pd.DataFrame,
@@ -54,6 +60,7 @@ def _build_summary_rows(
             "CASEID": int(df.iloc[idx]["CASEID"]) if "CASEID" in df.columns else idx,
             "predicted_risk_level_direct": int(direct_risk[idx]),
             "predicted_risk_level_heuristic": int(heuristic_risk[idx]),
+            "risk_level_used_for_recommendation": int(used_risk[idx]),
             "aux_risk_label": int(aux_risk[idx]),
             "aux_allocation_mae": float(alloc_mae[idx]),
             "rescaled_overlap_flag": bool(quality.iloc[idx]["rescaled_overlap_flag"]),
@@ -88,6 +95,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--allow-cma", action="store_true")
+    parser.add_argument("--risk-source", choices=["heuristic", "direct"], default="heuristic")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--output-csv", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_summary.csv")
     parser.add_argument("--output-json", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_details.json")
@@ -129,9 +137,10 @@ def main() -> None:
     predicted_allocations_np = np.concatenate(predicted_allocations, axis=0)
     direct_risk_np = np.concatenate(direct_risk, axis=0)
     heuristic_risk_np = np.array(
-        [_heuristic_risk_from_allocation(allocation) for allocation in predicted_allocations_np],
+        [derive_risk_label_from_allocation_vector(allocation) for allocation in predicted_allocations_np],
         dtype=np.int64,
     )
+    risk_for_recs_np = heuristic_risk_np if args.risk_source == "heuristic" else direct_risk_np
 
     products = _load_products(args.naverpay_path, args.pykrx_path)
     recommendations = []
@@ -139,7 +148,7 @@ def main() -> None:
         recommendation = recommend_products(
             products,
             UserRequest(
-                risk_level=int(direct_risk_np[idx]),
+                risk_level=int(risk_for_recs_np[idx]),
                 predicted_allocation=allocation,
                 allow_cma=args.allow_cma,
             ),
@@ -152,6 +161,7 @@ def main() -> None:
         predicted_allocations=predicted_allocations_np,
         direct_risk=direct_risk_np,
         heuristic_risk=heuristic_risk_np,
+        used_risk=risk_for_recs_np,
         aux_allocations=aux_allocations,
         aux_risk=aux_risk,
         quality=build_result.quality_frame,
@@ -174,8 +184,10 @@ def main() -> None:
                 np.mean(np.abs(predicted_allocations_np - aux_allocations))
             ),
             "pred_vs_aux_risk_match_rate": float(np.mean(direct_risk_np == aux_risk)),
+            "pred_vs_aux_heuristic_risk_match_rate": float(np.mean(heuristic_risk_np == aux_risk)),
             "overlap_rescaled_share": float(build_result.quality_frame["rescaled_overlap_flag"].mean()),
         },
+        "risk_source_used_for_recommendation": args.risk_source,
         "rows": summary_rows,
     }
     args.output_json.write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")

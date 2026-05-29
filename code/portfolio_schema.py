@@ -45,6 +45,13 @@ BUCKET_COLUMNS = [
     "other_fin",
 ]
 
+RISKY_BUCKET_COLUMNS = [
+    "taxable_equity",
+    "retirement_equity",
+]
+
+RISK_LABEL_BINS = [-np.inf, 0.05, 0.2, 0.4, 0.6, np.inf]
+
 
 @dataclass
 class PortfolioBuildResult:
@@ -65,17 +72,35 @@ def _safe_simplex(frame: pd.DataFrame) -> pd.DataFrame:
     return simplex
 
 
-def _derive_labels(df: pd.DataFrame) -> pd.Series:
-    if "RISK_LABEL" in df.columns:
-        labels = pd.to_numeric(df["RISK_LABEL"], errors="coerce").fillna(1).astype(int) - 1
-        return labels.clip(lower=0, upper=4)
+def risky_share_from_allocation_frame(allocation_frame: pd.DataFrame) -> pd.Series:
+    return allocation_frame[RISKY_BUCKET_COLUMNS].sum(axis=1)
 
-    equity_share = pd.to_numeric(df["EQUITY"], errors="coerce").fillna(0.0)
-    fin = _numeric(df, "FIN").replace(0.0, np.nan)
-    risk_ratio = (equity_share / fin).fillna(0.0)
-    bins = [-np.inf, 0.1, 0.3, 0.5, 0.7, np.inf]
-    labels = pd.cut(risk_ratio, bins=bins, labels=[0, 1, 2, 3, 4], right=False)
+
+def derive_risk_labels_from_allocation_frame(allocation_frame: pd.DataFrame) -> pd.Series:
+    risky_share = risky_share_from_allocation_frame(allocation_frame)
+    labels = pd.cut(
+        risky_share,
+        bins=RISK_LABEL_BINS,
+        labels=[0, 1, 2, 3, 4],
+        include_lowest=True,
+    )
     return labels.astype(int)
+
+
+def derive_risk_label_from_allocation_vector(allocation: np.ndarray) -> int:
+    allocation_series = pd.Series(allocation, index=BUCKET_COLUMNS, dtype=float)
+    risky_share = float(allocation_series[RISKY_BUCKET_COLUMNS].sum())
+    labels = pd.cut(
+        pd.Series([risky_share]),
+        bins=RISK_LABEL_BINS,
+        labels=[0, 1, 2, 3, 4],
+        include_lowest=True,
+    )
+    return int(labels.iloc[0])
+
+
+def _derive_labels(_: pd.DataFrame, allocation_frame: pd.DataFrame) -> pd.Series:
+    return derive_risk_labels_from_allocation_frame(allocation_frame)
 
 
 def build_non_overlapping_buckets(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -129,7 +154,7 @@ def build_allocation_dataset(df: pd.DataFrame) -> PortfolioBuildResult:
     categorical = clean[CATEGORICAL_COLUMNS].apply(pd.to_numeric, errors="coerce").fillna(0).astype(int)
     buckets, quality = build_non_overlapping_buckets(clean)
     simplex = _safe_simplex(buckets)
-    labels = _derive_labels(clean)
+    labels = _derive_labels(clean, simplex)
     return PortfolioBuildResult(
         categorical_frame=categorical,
         allocation_frame=simplex,

@@ -20,9 +20,16 @@ def build_ordinal_targets(labels, num_risk_levels):
     return (labels.unsqueeze(1) > thresholds).float()
 
 
-def ordinal_regression_loss(logits, labels, num_risk_levels):
+def build_ordinal_pos_weight(labels, num_risk_levels):
     targets = build_ordinal_targets(labels, num_risk_levels)
-    return F.binary_cross_entropy_with_logits(logits, targets)
+    positive_counts = targets.sum(dim=0)
+    negative_counts = targets.size(0) - positive_counts
+    return negative_counts / positive_counts.clamp_min(1.0)
+
+
+def ordinal_regression_loss(logits, labels, num_risk_levels, pos_weight=None):
+    targets = build_ordinal_targets(labels, num_risk_levels)
+    return F.binary_cross_entropy_with_logits(logits, targets, pos_weight=pos_weight)
 
 
 def ordinal_logits_to_label(logits):
@@ -88,16 +95,18 @@ def build_cross_modal_positive_mask(
     target_alloc,
     labels=None,
     cluster_ids=None,
-    js_threshold=0.08,
+    js_threshold=0.03,
+    include_label_matches=False,
+    include_cluster_matches=False,
 ):
     batch_size = source_alloc.size(0)
     cross_mask = torch.eye(batch_size, dtype=torch.bool, device=source_alloc.device)
 
-    if labels is not None:
+    if include_label_matches and labels is not None:
         label_mask = labels.unsqueeze(0) == labels.unsqueeze(1)
         cross_mask |= label_mask
 
-    if cluster_ids is not None:
+    if include_cluster_matches and cluster_ids is not None:
         cluster_mask = cluster_ids.unsqueeze(0) == cluster_ids.unsqueeze(1)
         cross_mask |= cluster_mask
 

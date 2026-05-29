@@ -20,6 +20,7 @@ from checkpoint_utils import (
     set_reproducible_mode,
 )
 from contrastive_utils import (
+    build_ordinal_pos_weight,
     build_cross_modal_positive_mask,
     continuous_portfolio_loss,
     coral_loss,
@@ -109,7 +110,16 @@ def main() -> None:
     parser.add_argument("--validation-ratio", type=float, default=0.1)
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--temperature", type=float, default=0.15)
-    parser.add_argument("--js-threshold", type=float, default=0.08)
+    parser.add_argument("--js-threshold", type=float, default=0.03)
+    parser.add_argument("--use-label-positives", action="store_true")
+    parser.add_argument("--use-cluster-positives", action="store_true")
+    parser.add_argument("--disable-risk-pos-weight", action="store_true")
+    parser.add_argument("--loss-weight-supcon", type=float, default=0.4)
+    parser.add_argument("--loss-weight-source-alloc", type=float, default=2.0)
+    parser.add_argument("--loss-weight-target-alloc", type=float, default=0.5)
+    parser.add_argument("--loss-weight-source-risk", type=float, default=0.2)
+    parser.add_argument("--loss-weight-target-risk", type=float, default=0.1)
+    parser.add_argument("--loss-weight-coral", type=float, default=0.05)
     args = parser.parse_args()
 
     set_reproducible_mode(args.seed, deterministic=True)
@@ -166,12 +176,12 @@ def main() -> None:
     )
 
     loss_weights = {
-        "supcon": 0.4,
-        "source_alloc": 2.0,
-        "target_alloc": 0.5,
-        "source_risk": 0.2,
-        "target_risk": 0.1,
-        "coral": 0.05,
+        "supcon": args.loss_weight_supcon,
+        "source_alloc": args.loss_weight_source_alloc,
+        "target_alloc": args.loss_weight_target_alloc,
+        "source_risk": args.loss_weight_source_risk,
+        "target_risk": args.loss_weight_target_risk,
+        "coral": args.loss_weight_coral,
     }
 
     best_state = None
@@ -187,6 +197,10 @@ def main() -> None:
         labels_tensor=labels,
         split="train",
     )
+    risk_pos_weight = None
+    if not args.disable_risk_pos_weight:
+        train_labels_subset = labels[train_idx]
+        risk_pos_weight = build_ordinal_pos_weight(train_labels_subset, num_risk_levels=5).to(device)
 
     for epoch in range(args.epochs):
         source_encoder.train()
@@ -218,6 +232,8 @@ def main() -> None:
                 labels=batch_labels,
                 cluster_ids=batch_clusters,
                 js_threshold=args.js_threshold,
+                include_label_matches=args.use_label_positives,
+                include_cluster_matches=args.use_cluster_positives,
             )
             embeddings = torch.cat([source_output.embedding, target_output.embedding], dim=0)
             loss_supcon = multi_positive_supcon_loss(
@@ -238,11 +254,13 @@ def main() -> None:
                 source_output.risk_logits,
                 batch_labels,
                 num_risk_levels=5,
+                pos_weight=risk_pos_weight,
             )
             loss_target_risk = ordinal_regression_loss(
                 target_output.risk_logits,
                 batch_labels,
                 num_risk_levels=5,
+                pos_weight=risk_pos_weight,
             )
             loss_coral = coral_loss(source_output.hidden, target_output.hidden)
 
@@ -305,6 +323,9 @@ def main() -> None:
         "validation_ratio": args.validation_ratio,
         "loss_weights": loss_weights,
         "js_threshold": args.js_threshold,
+        "use_label_positives": args.use_label_positives,
+        "use_cluster_positives": args.use_cluster_positives,
+        "risk_pos_weight": risk_pos_weight.tolist() if risk_pos_weight is not None else None,
     }
     save_dual_encoder_checkpoint(
         checkpoint_dir=args.checkpoint_dir,

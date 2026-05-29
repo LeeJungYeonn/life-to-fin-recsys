@@ -21,6 +21,25 @@ from portfolio_schema import CATEGORICAL_COLUMNS
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def mean_allocation_baseline(train_alloc: torch.Tensor, eval_alloc: torch.Tensor) -> dict[str, object]:
+    mean_alloc = train_alloc.mean(dim=0)
+    return {
+        "mae": float(torch.mean(torch.abs(eval_alloc - mean_alloc)).item()),
+        "mean_allocation": [float(value) for value in mean_alloc.tolist()],
+    }
+
+
+def majority_risk_baseline(train_labels: torch.Tensor, eval_labels: torch.Tensor) -> dict[str, float]:
+    majority_label = int(torch.mode(train_labels).values.item())
+    predictions = np.full(len(eval_labels), majority_label, dtype=np.int64)
+    eval_np = eval_labels.numpy()
+    return {
+        "majority_label": majority_label,
+        "accuracy": float(accuracy_score(eval_np, predictions)),
+        "macro_f1": float(f1_score(eval_np, predictions, average="macro")),
+    }
+
+
 def evaluate_linear_probe(features: np.ndarray, labels: np.ndarray) -> dict[str, float]:
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     clf = make_pipeline(StandardScaler(), LogisticRegression(max_iter=5000))
@@ -114,6 +133,8 @@ def main() -> None:
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    train_x_alloc = torch.load(args.processed_dir / "train_x_alloc_tensor.pt")
+    train_labels = torch.load(args.processed_dir / "train_labels_tensor.pt")
     x_cat = torch.load(args.processed_dir / f"{args.split}_x_cat_tensor.pt")
     x_alloc = torch.load(args.processed_dir / f"{args.split}_x_alloc_tensor.pt")
     labels = torch.load(args.processed_dir / f"{args.split}_labels_tensor.pt")
@@ -156,6 +177,10 @@ def main() -> None:
         "num_examples": int(len(labels_np)),
         "checkpoint_prefix": args.prefix,
         "validation_warnings": validation["warnings"],
+        "baselines": {
+            "mean_allocation": mean_allocation_baseline(train_x_alloc, x_alloc),
+            "majority_risk": majority_risk_baseline(train_labels, labels),
+        },
         "source_risk_acc": float(accuracy_score(labels_np, source_pred)),
         "source_risk_macro_f1": float(f1_score(labels_np, source_pred, average="macro")),
         "target_risk_acc": float(accuracy_score(labels_np, target_pred)),

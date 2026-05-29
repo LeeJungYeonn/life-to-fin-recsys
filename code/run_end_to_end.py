@@ -9,7 +9,11 @@ import torch
 
 from checkpoint_utils import load_dual_encoder_checkpoint
 from contrastive_utils import ordinal_logits_to_label
-from portfolio_schema import BUCKET_COLUMNS, CATEGORICAL_COLUMNS
+from portfolio_schema import (
+    BUCKET_COLUMNS,
+    CATEGORICAL_COLUMNS,
+    derive_risk_label_from_allocation_vector,
+)
 from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
 from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
 from recsys.ranker import UserRequest, recommend_products
@@ -51,19 +55,6 @@ def _build_input_tensor(profile: dict, cardinalities: list[int]) -> torch.Tensor
     return torch.tensor([values], dtype=torch.long)
 
 
-def _heuristic_risk_from_allocation(allocation: np.ndarray) -> int:
-    equity_share = float(allocation[BUCKET_COLUMNS.index("taxable_equity")] + allocation[BUCKET_COLUMNS.index("retirement_equity")])
-    if equity_share < 0.1:
-        return 0
-    if equity_share < 0.3:
-        return 1
-    if equity_share < 0.5:
-        return 2
-    if equity_share < 0.7:
-        return 3
-    return 4
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, required=True, help="Path to user profile JSON")
@@ -73,6 +64,7 @@ def main() -> None:
     parser.add_argument("--naverpay-path", type=Path, default=None)
     parser.add_argument("--pykrx-path", type=Path, default=None)
     parser.add_argument("--device", type=str, default=None)
+    parser.add_argument("--risk-source", choices=["heuristic", "direct"], default="heuristic")
     args = parser.parse_args()
 
     profile = _load_profile(args.input)
@@ -100,12 +92,13 @@ def main() -> None:
 
     allocation = source_output.allocation_probs.squeeze(0).cpu().numpy()
     direct_risk_level = int(ordinal_logits_to_label(source_output.risk_logits).item())
-    heuristic_risk_level = _heuristic_risk_from_allocation(allocation)
+    heuristic_risk_level = derive_risk_label_from_allocation_vector(allocation)
 
     options = profile.get("options", {})
     top_k = int(options.get("top_k", 5))
     allow_cma = bool(options.get("allow_cma", False))
-    risk_level_for_recs = int(options.get("risk_level_override", direct_risk_level))
+    default_risk_level = heuristic_risk_level if args.risk_source == "heuristic" else direct_risk_level
+    risk_level_for_recs = int(options.get("risk_level_override", default_risk_level))
 
     products = []
     if args.naverpay_path is not None:
@@ -143,6 +136,7 @@ def main() -> None:
         "predicted_risk_level_direct": direct_risk_level,
         "predicted_risk_level_heuristic": heuristic_risk_level,
         "risk_level_used_for_recommendation": risk_level_for_recs,
+        "risk_source_used_for_recommendation": args.risk_source,
         "options": {
             "top_k": top_k,
             "allow_cma": allow_cma,
