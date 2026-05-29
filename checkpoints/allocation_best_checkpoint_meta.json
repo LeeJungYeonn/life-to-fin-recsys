@@ -102,7 +102,7 @@
     "labels_shape": [
       13208
     ],
-    "labels_hash": "ca360f0ca0fa91a0d23f32e45173f9d9b978be79c83eb7febb7a6f03e32305ef"
+    "labels_hash": "684d21a70b9631f4cda8f8d0c23edebbf9c6e117976837f00ba46ffd919bbab0"
   },
   "best_params": {
     "batch_size": 256,
@@ -119,8 +119,16 @@
       "target_risk": 0.1,
       "coral": 0.05
     },
-    "js_threshold": 0.08
+    "js_threshold": 0.03,
+    "use_label_positives": false,
+    "use_cluster_positives": false,
+    "risk_pos_weight": [
+      0.49823543429374695,
+      0.8248388171195984,
+      1.7376785278320312,
+      3.9079272747039795
+    ]
   },
-  "best_loss": 0.1560527123858644,
+  "best_loss": 0.155934035161394,
   "training_state_checkpoint": "allocation_best_training_state.pth"
 }

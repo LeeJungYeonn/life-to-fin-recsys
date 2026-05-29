@@ -5,110 +5,128 @@
   "validation_warnings": [
     "Current split 'test' differs from checkpoint split 'train'. Exact tensor hash validation was skipped."
   ],
-  "source_risk_acc": 0.33287950987066034,
-  "source_risk_macro_f1": 0.2597925496404199,
-  "target_risk_acc": 0.9040163376446563,
-  "target_risk_macro_f1": 0.8891154264238967,
-  "source_alloc_mae": 0.15499094128608704,
-  "target_alloc_mae": 0.009350900538265705,
+  "baselines": {
+    "mean_allocation": {
+      "mae": 0.18073971569538116,
+      "mean_allocation": [
+        0.34421461820602417,
+        0.1222795844078064,
+        0.012693142518401146,
+        0.18877430260181427,
+        0.18456785380840302,
+        0.14747048914432526
+      ]
+    },
+    "majority_risk": {
+      "majority_label": 0,
+      "accuracy": 0.3287950987066031,
+      "macro_f1": 0.09897540983606558
+    }
+  },
+  "source_risk_acc": 0.37168141592920356,
+  "source_risk_macro_f1": 0.23426795345622073,
+  "target_risk_acc": 0.9598366235534377,
+  "target_risk_macro_f1": 0.9530310581171182,
+  "source_alloc_mae": 0.15437188744544983,
+  "target_alloc_mae": 0.007780304178595543,
   "source_confusion_matrix": [
     [
-      268,
-      130,
-      81,
-      32,
-      0
+      336,
+      29,
+      13,
+      15,
+      90
     ],
     [
-      53,
-      66,
-      77,
-      51,
-      0
+      68,
+      9,
+      9,
+      8,
+      92
     ],
     [
-      39,
-      60,
-      107,
-      60,
-      0
+      80,
+      9,
+      11,
+      15,
+      136
     ],
     [
-      36,
-      52,
-      83,
-      48,
-      0
+      62,
+      10,
+      7,
+      7,
+      151
     ],
     [
-      36,
-      47,
-      88,
-      55,
-      0
+      87,
+      11,
+      18,
+      13,
+      183
     ]
   ],
   "retrieval": {
-    "pair_recall@1": 0.0013614703880190605,
-    "pair_recall@5": 0.009530292716133424,
-    "pair_recall@10": 0.016337644656228726,
-    "pair_mrr": 0.010439418878856774,
-    "label_recall@1": 0.336283185840708,
-    "label_recall@5": 0.46698434309053777,
-    "label_recall@10": 0.5180394826412525,
-    "label_mrr": 0.3986568165845674,
-    "cluster_recall@1": 0.22328114363512594,
-    "cluster_recall@5": 0.2702518720217835,
-    "cluster_recall@10": 0.29611980939414567,
-    "cluster_mrr": 0.2518815785570969
+    "pair_recall@1": 0.005445881552076242,
+    "pair_recall@5": 0.012933968686181076,
+    "pair_recall@10": 0.02042205582028591,
+    "pair_mrr": 0.0156354618047868,
+    "label_recall@1": 0.31722260040844114,
+    "label_recall@5": 0.4540503744043567,
+    "label_recall@10": 0.504424778761062,
+    "label_mrr": 0.38570799180401716,
+    "cluster_recall@1": 0.22940776038121172,
+    "cluster_recall@5": 0.31654186521443156,
+    "cluster_recall@10": 0.3798502382573179,
+    "cluster_mrr": 0.2781810719429226
   },
   "probe": {
     "source": {
-      "accuracy_mean": 0.3553342155975018,
-      "accuracy_std": 0.014770662149336049,
-      "macro_f1_mean": 0.256287246064913,
-      "macro_f1_std": 0.012097067299684018
+      "accuracy_mean": 0.3573912841587147,
+      "accuracy_std": 0.012868425430211182,
+      "macro_f1_mean": 0.2636932555166966,
+      "macro_f1_std": 0.01688531322953039
     },
     "target": {
-      "accuracy_mean": 0.901980450883425,
-      "accuracy_std": 0.018399403312680244,
-      "macro_f1_mean": 0.887993076519422,
-      "macro_f1_std": 0.021369340508945518
+      "accuracy_mean": 0.9523554131550231,
+      "accuracy_std": 0.006764496620063684,
+      "macro_f1_mean": 0.9423085042548388,
+      "macro_f1_std": 0.008577610996115112
     }
   },
   "domain_classifier": {
-    "accuracy_mean": 0.7654845924741276,
-    "accuracy_std": 0.013964217290188555
+    "accuracy_mean": 0.7733129367590308,
+    "accuracy_std": 0.013628207510174491
   },
   "silhouette": {
-    "risk_cosine": 0.06808999180793762,
-    "modality_cosine": 0.002338389866054058
+    "risk_cosine": 0.05589631572365761,
+    "modality_cosine": 0.0008846423006616533
   },
   "centroid_distance_by_class": [
     {
       "risk_label": 0,
-      "euclidean_distance": 0.16848255693912506,
-      "cosine_distance": 0.014174580574035645
+      "euclidean_distance": 0.18994498252868652,
+      "cosine_distance": 0.01904916763305664
     },
     {
       "risk_label": 1,
-      "euclidean_distance": 0.14306439459323883,
-      "cosine_distance": 0.011117279529571533
+      "euclidean_distance": 0.14811259508132935,
+      "cosine_distance": 0.013837218284606934
     },
     {
       "risk_label": 2,
-      "euclidean_distance": 0.12713612616062164,
-      "cosine_distance": 0.00858837366104126
+      "euclidean_distance": 0.13674286007881165,
+      "cosine_distance": 0.011172056198120117
     },
     {
       "risk_label": 3,
-      "euclidean_distance": 0.19989201426506042,
-      "cosine_distance": 0.021538376808166504
+      "euclidean_distance": 0.1635420173406601,
+      "cosine_distance": 0.016906678676605225
     },
     {
       "risk_label": 4,
-      "euclidean_distance": 0.284434974193573,
-      "cosine_distance": 0.0429379940032959
+      "euclidean_distance": 0.20694305002689362,
+      "cosine_distance": 0.026766061782836914
     }
   ]
 }

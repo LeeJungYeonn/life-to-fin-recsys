@@ -1,0 +1,16 @@
+# Core training and recommendation pipeline
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+torch>=2.2
+
+# ETF snapshot fetching and environment variables
+pykrx>=1.0.51
+python-dotenv>=1.0
+python-dateutil>=2.9
+
+# Notebook exploration and visualization
+jupyterlab>=4.2
+matplotlib>=3.8
+seaborn>=0.13
+statsmodels>=0.14
