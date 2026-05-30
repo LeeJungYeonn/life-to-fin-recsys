@@ -3,6 +3,7 @@ numpy>=1.26
 pandas>=2.2
 scikit-learn>=1.4
 torch>=2.2
+catboost>=1.2
 
 # ETF snapshot fetching and environment variables
 pykrx>=1.0.51
