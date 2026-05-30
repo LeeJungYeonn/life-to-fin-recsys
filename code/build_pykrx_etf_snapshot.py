@@ -20,28 +20,27 @@ if load_dotenv is not None:
     load_dotenv()
 
 
-THEME_RISK_RULES = {
-    5: ["레버리지", "인버스", "2X", "바이오", "2차전지"],
-    4: ["200", "S&P500", "나스닥100"],
-    3: ["고배당", "배당성장", "커버드콜"],
-    2: ["국고채", "단기채", "통안채", "특수채", "지방채", "달러단기", "AA", "AAA"],
-}
+ASSET_CLASSES = ["cash", "bond", "pension", "equity"]
 
-THEME_KEYWORDS = {
-    "bond": ["국고채", "단기채", "통안채", "특수채", "지방채", "회사채", "채권", "bond"],
-    "cash": ["파킹", "머니마켓", "mmf"],
-    "retirement": ["연금", "은퇴", "target date", "tdf"],
-    "dividend": ["고배당", "배당성장", "커버드콜", "dividend"],
-    "quality": ["퀄리티", "quality", "우량", "블루칩"],
-    "leveraged": ["레버리지", "2x"],
-    "inverse": ["인버스"],
-    "bio": ["바이오"],
-    "battery": ["2차전지"],
-    "semiconductor": ["반도체", "semiconductor"],
-    "nasdaq100": ["나스닥100", "nasdaq100"],
-    "sp500": ["s&p500"],
-    "index200": ["코스피200", "200"],
-}
+PROVIDER_PREFIXES = [
+    "KODEX",
+    "TIGER",
+    "ACE",
+    "SOL",
+    "KBSTAR",
+    "RISE",
+    "PLUS",
+    "ARIRANG",
+    "KOSEF",
+    "HANARO",
+    "TIMEFOLIO",
+    "FOCUS",
+    "BNK",
+    "WOORI",
+    "HK",
+    "MASTER",
+    "마이다스",
+]
 
 GLOBAL_MARKET_KEYWORDS = [
     "미국",
@@ -51,93 +50,174 @@ GLOBAL_MARKET_KEYWORDS = [
     "인도",
     "베트남",
     "글로벌",
-    "world",
-    "global",
-    "msci",
-    "s&p",
-    "nasdaq",
-    "nikkei",
-    "euro",
-    "hong kong",
-    "taiwan",
-    "brazil",
+    "선진국",
+    "신흥국",
+    "WORLD",
+    "GLOBAL",
+    "MSCI",
+    "S&P",
+    "NASDAQ",
+    "NIKKEI",
+    "EURO",
+    "HONG KONG",
+    "TAIWAN",
+    "BRAZIL",
 ]
 
-QUALITY_THEME_SCORES = {
-    2: {
-        "bond": 6.0,
-        "cash": 5.5,
-        "quality": 4.5,
-        "dividend": 4.0,
-        "sp500": 3.5,
-        "index200": 3.0,
-        "retirement": 3.0,
-        "nasdaq100": 2.0,
-        "equity": 1.0,
-    },
-    3: {
-        "quality": 5.0,
-        "dividend": 4.5,
-        "sp500": 4.5,
-        "retirement": 4.0,
-        "index200": 4.0,
-        "nasdaq100": 3.5,
-        "bond": 3.0,
-        "semiconductor": 3.0,
-        "equity": 2.0,
-    },
-    4: {
-        "quality": 5.5,
-        "sp500": 5.5,
-        "nasdaq100": 5.0,
-        "semiconductor": 4.5,
-        "index200": 4.0,
-        "dividend": 3.5,
-        "equity": 2.0,
-        "bond": 1.0,
-    },
-    5: {
-        "quality": 5.5,
-        "nasdaq100": 5.5,
-        "semiconductor": 5.0,
-        "sp500": 4.5,
-        "dividend": 2.5,
-        "index200": 2.5,
-        "equity": 2.0,
-    },
+KEYWORDS = {
+    "cash": [
+        "머니마켓",
+        "MMF",
+        "CD금리",
+        "CD 금리",
+        "KOFR",
+        "SOFR",
+        "파킹",
+        "초단기",
+        "양도성예금증서",
+    ],
+    "bond": [
+        "단기채",
+        "국고채",
+        "국채",
+        "채권",
+        "통안채",
+        "회사채",
+        "특수채",
+        "미국채",
+        "종합채권",
+        "국공채",
+        "금융채",
+        "AA",
+        "AAA",
+        "BOND",
+    ],
+    "pension": [
+        "TDF",
+        "TRF",
+        "퇴직",
+        "연금",
+        "은퇴",
+        "타겟데이트",
+        "TARGET DATE",
+    ],
+    "equity": [
+        "KOSPI",
+        "KOSDAQ",
+        "코스피",
+        "코스닥",
+        "200",
+        "S&P",
+        "나스닥",
+        "NASDAQ",
+        "MSCI",
+        "배당",
+        "고배당",
+        "배당성장",
+        "반도체",
+        "2차전지",
+        "바이오",
+        "AI",
+        "기술",
+        "테크",
+        "혁신",
+        "성장",
+        "주주가치",
+        "밸류",
+        "헬스케어",
+        "방산",
+        "모빌리티",
+        "자동차",
+        "소비",
+        "금융",
+        "리츠",
+        "로봇",
+        "TOP10",
+        "미국",
+        "글로벌",
+        "인도",
+        "중국",
+        "일본",
+        "유럽",
+    ],
 }
 
-CORE_QUALITY_KEYWORDS = [
-    "s&p500",
-    "나스닥100",
-    "nasdaq100",
-    "코스피200",
-    "msci",
-    "배당귀족",
-    "퀄리티",
-    "quality",
-    "우량",
-    "블루칩",
-]
+SUBTYPE_KEYWORDS = {
+    "cash_like": [
+        "CD금리",
+        "CD 금리",
+        "KOFR",
+        "SOFR",
+        "머니마켓",
+        "MMF",
+        "파킹",
+        "초단기",
+        "양도성예금증서",
+    ],
+    "retirement": ["TDF", "TRF", "퇴직", "연금", "은퇴", "타겟데이트", "TARGET DATE"],
+    "short_bond": ["단기채", "통안채", "초단기", "단기", "1년", "3개월"],
+    "gov_bond": ["국고채", "국채", "미국채", "국공채"],
+    "credit_bond": ["회사채", "금융채", "특수채", "AA", "AAA"],
+    "aggregate_bond": ["종합채권", "채권혼합", "채권"],
+    "dividend": ["배당", "고배당", "배당성장", "커버드콜", "DIVIDEND"],
+    "broad_index": [
+        "KOSPI",
+        "KOSDAQ",
+        "코스피",
+        "코스닥",
+        "200",
+        "S&P500",
+        "S&P 500",
+        "나스닥100",
+        "NASDAQ100",
+        "NASDAQ 100",
+        "MSCI",
+    ],
+    "theme_growth": [
+        "반도체",
+        "2차전지",
+        "바이오",
+        "AI",
+        "기술",
+        "테크",
+        "혁신",
+        "성장",
+        "주주가치",
+        "밸류",
+        "헬스케어",
+        "방산",
+        "모빌리티",
+        "자동차",
+        "소비",
+        "인공지능",
+        "로봇",
+        "전력",
+        "인프라",
+        "메타버스",
+        "게임",
+        "테마",
+    ],
+}
 
-PROMISING_GROWTH_KEYWORDS = [
-    "반도체",
-    "semiconductor",
-    "ai테크",
-    "인공지능",
-    "전력",
-    "인프라",
-]
+THEME_RISK_RULES = {
+    5: ["레버리지", "인버스", "2X", "3X", "바이오", "2차전지"],
+    4: ["200", "S&P500", "S&P 500", "나스닥100", "NASDAQ100"],
+    3: ["고배당", "배당성장", "커버드콜"],
+    2: ["국고채", "단기채", "통안채", "특수채", "지방채", "달러단기", "AA", "AAA"],
+}
 
-SPECULATIVE_THEME_KEYWORDS = [
-    "레버리지",
-    "인버스",
-    "2x",
-    "바이오",
-    "2차전지",
-    "메타버스",
-    "게임",
-]
+ROLE_SCORE = {
+    "cash_like": 0.95,
+    "short_bond": 0.9,
+    "gov_bond": 0.85,
+    "credit_bond": 0.72,
+    "aggregate_bond": 0.75,
+    "retirement": 0.8,
+    "broad_index": 0.92,
+    "dividend": 0.78,
+    "theme_growth": 0.55,
+    "other": 0.35,
+}
 
 
 def resolve_latest_trading_date(lookback_days: int = 10) -> tuple[str, list[str]]:
@@ -155,162 +235,281 @@ def resolve_latest_trading_date(lookback_days: int = 10) -> tuple[str, list[str]
     raise ValueError(f"최근 {lookback_days}일 안에서 ETF 거래일을 찾지 못했습니다.")
 
 
-def classify_volatility_risk_level(volatility_percent: float) -> int:
-    if volatility_percent < 5.0:
-        return 1
-    if volatility_percent < 10.0:
-        return 2
-    if volatility_percent < 15.0:
-        return 3
-    if volatility_percent < 25.0:
-        return 4
-    return 5
+def scalar_text(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, pd.Series):
+        value = value.dropna()
+        return "" if value.empty else str(value.iloc[0])
+    if isinstance(value, pd.DataFrame):
+        stacked = value.stack().dropna()
+        return "" if stacked.empty else str(stacked.iloc[0])
+    if isinstance(value, np.ndarray):
+        flat = value.ravel()
+        return "" if len(flat) == 0 else scalar_text(flat[0])
+    if isinstance(value, (list, tuple)):
+        return "" if not value else scalar_text(value[0])
+    if pd.isna(value):
+        return ""
+    return str(value)
 
 
-def infer_theme_risk_level(name: str) -> int | None:
-    for level in sorted(THEME_RISK_RULES.keys(), reverse=True):
-        if any(token in name for token in THEME_RISK_RULES[level]):
-            return level
-    return None
+def normalize_name(name: object) -> str:
+    return scalar_text(name).upper().replace(" ", "")
 
 
-def infer_theme(name: str) -> str:
-    lowered = name.lower()
-    for theme, keywords in THEME_KEYWORDS.items():
-        if any(keyword in name or keyword in lowered for keyword in keywords):
-            return theme
-    return "equity"
+def has_any(normalized_name: str, keywords: Iterable[str]) -> bool:
+    return any(keyword.upper().replace(" ", "") in normalized_name for keyword in keywords)
+
+
+def infer_provider(name: str) -> str:
+    normalized = normalize_name(name)
+    for provider in PROVIDER_PREFIXES:
+        if normalized.startswith(provider.upper().replace(" ", "")):
+            return provider
+    tokens = str(name).split()
+    return tokens[0] if tokens else "ETF"
 
 
 def infer_market(name: str) -> str:
-    lowered = name.lower()
-    if any(keyword in name or keyword in lowered for keyword in GLOBAL_MARKET_KEYWORDS):
+    normalized = normalize_name(name)
+    if has_any(normalized, GLOBAL_MARKET_KEYWORDS):
         return "global"
     return "domestic"
 
 
-def infer_provider(name: str) -> str:
-    tokens = name.split()
-    return tokens[0] if tokens else "ETF"
+def classify_asset_class(name: str) -> str:
+    normalized = normalize_name(name)
+    for asset_class in ["cash", "pension", "bond", "equity"]:
+        if has_any(normalized, KEYWORDS[asset_class]):
+            return asset_class
+    return "other"
 
 
-def compute_preference_score(
-    name: str,
-    *,
-    risk_level: int,
-    theme: str,
-    theme_risk_level: int | None,
-) -> tuple[float, str]:
-    lowered = name.lower()
-    score = QUALITY_THEME_SCORES.get(risk_level, {}).get(theme, 0.0)
-    reasons = []
-
-    if any(keyword in lowered for keyword in CORE_QUALITY_KEYWORDS):
-        score += 3.0
-        reasons.append("core_index")
-
-    if any(keyword in lowered for keyword in PROMISING_GROWTH_KEYWORDS):
-        score += 2.0 if risk_level >= 4 else 1.0
-        reasons.append("growth_sector")
-
-    if any(keyword in lowered for keyword in SPECULATIVE_THEME_KEYWORDS):
-        score -= 6.0
-        reasons.append("speculative_penalty")
-
-    if theme_risk_level is not None and theme_risk_level >= 5:
-        score -= 1.5
-        reasons.append("theme_risk_penalty")
-
-    return score, ",".join(reasons) if reasons else "balanced"
+def classify_subtype(name: str) -> str:
+    normalized = normalize_name(name)
+    for subtype, keywords in SUBTYPE_KEYWORDS.items():
+        if has_any(normalized, keywords):
+            return subtype
+    return "other"
 
 
-def compute_liquidity_metrics(history: pd.DataFrame) -> tuple[float, float]:
-    if "거래대금" not in history:
-        return 0.0, 0.0
+def infer_theme(name: str, asset_class: str, subtype: str) -> str:
+    normalized = normalize_name(name)
+    if asset_class in {"cash", "bond", "pension"}:
+        return subtype
+    if has_any(normalized, ["나스닥100", "NASDAQ100", "NASDAQ 100"]):
+        return "nasdaq100"
+    if has_any(normalized, ["S&P500", "S&P 500"]):
+        return "sp500"
+    if has_any(normalized, ["코스피200", "KOSPI200", "200"]):
+        return "index200"
+    if has_any(normalized, ["반도체", "SEMICONDUCTOR"]):
+        return "semiconductor"
+    if has_any(normalized, ["2차전지", "BATTERY"]):
+        return "battery"
+    if has_any(normalized, ["바이오"]):
+        return "bio"
+    if subtype == "dividend":
+        return "dividend"
+    if subtype == "theme_growth":
+        return "theme_growth"
+    return "equity"
 
-    trading_value = history["거래대금"].dropna()
-    if trading_value.empty:
-        return 0.0, 0.0
 
-    average_20d = float(trading_value.tail(20).mean())
-    latest = float(trading_value.iloc[-1])
-    return average_20d, latest
-
-
-def preferred_themes_for_risk_level(risk_level: int) -> list[str]:
-    theme_scores = QUALITY_THEME_SCORES.get(risk_level, {})
-    return [
-        theme
-        for theme, _ in sorted(theme_scores.items(), key=lambda item: (-item[1], item[0]))
-        if theme != "equity"
-    ]
+def infer_theme_risk_level(name: str) -> int | None:
+    normalized = normalize_name(name)
+    for level in sorted(THEME_RISK_RULES.keys(), reverse=True):
+        if has_any(normalized, THEME_RISK_RULES[level]):
+            return level
+    return None
 
 
-def select_representative_rows(frame: pd.DataFrame, per_risk_level: int) -> pd.DataFrame:
+def get_exclude_reason(name: str) -> str | None:
+    normalized = normalize_name(name)
+    if has_any(normalized, ["레버리지", "2X", "3X", "인버스", "곱버스"]):
+        return "leveraged_or_inverse"
+    if has_any(normalized, ["합성", "파생", "스왑"]):
+        return "synthetic_or_derivative"
+    return None
+
+
+def infer_expected_role(asset_class: str, subtype: str) -> str:
+    if asset_class == "cash":
+        return "liquidity_buffer"
+    if asset_class == "bond" and subtype in {"cash_like", "short_bond"}:
+        return "stable_bond"
+    if asset_class == "bond" and subtype == "gov_bond":
+        return "fixed_income_core"
+    if asset_class == "bond":
+        return "fixed_income"
+    if asset_class == "pension":
+        return "long_term_retirement"
+    if asset_class == "equity" and subtype == "broad_index":
+        return "core_equity"
+    if asset_class == "equity" and subtype == "dividend":
+        return "defensive_equity"
+    if asset_class == "equity" and subtype == "theme_growth":
+        return "satellite_growth"
+    return "general"
+
+
+def volatility_to_risk_level(asset_class: str, volatility: float | None) -> int:
+    if volatility is None or pd.isna(volatility):
+        return {"cash": 1, "bond": 2, "pension": 3, "equity": 4}.get(asset_class, 3)
+
+    if asset_class == "cash":
+        return 1
+    if asset_class == "bond":
+        if volatility < 0.03:
+            return 1
+        if volatility < 0.07:
+            return 2
+        return 3
+    if asset_class == "pension":
+        if volatility < 0.08:
+            return 2
+        if volatility < 0.15:
+            return 3
+        return 4
+    if asset_class == "equity":
+        if volatility < 0.12:
+            return 3
+        if volatility < 0.25:
+            return 4
+        return 5
+    return 3
+
+
+def get_close_series(history: pd.DataFrame) -> pd.Series:
+    if history is None or history.empty or "종가" not in history:
+        return pd.Series(dtype=float)
+    return pd.to_numeric(history["종가"], errors="coerce").dropna()
+
+
+def compute_annualized_volatility(history: pd.DataFrame, min_returns: int) -> float | None:
+    close = get_close_series(history)
+    returns = close.pct_change().dropna()
+    if len(returns) < min_returns:
+        return None
+    return float(returns.std() * np.sqrt(252))
+
+
+def compute_return(close: pd.Series, periods: int | None = None) -> float | None:
+    if close.empty or len(close) < 2:
+        return None
+    start = close.iloc[0] if periods is None or len(close) <= periods else close.iloc[-periods - 1]
+    end = close.iloc[-1]
+    if not start:
+        return None
+    return float(end / start - 1.0)
+
+
+def compute_liquidity_metrics(history: pd.DataFrame) -> tuple[float | None, float | None, float | None]:
+    if history is None or history.empty:
+        return None, None, None
+
+    if "거래대금" in history:
+        liquidity = pd.to_numeric(history["거래대금"], errors="coerce").dropna()
+    elif "거래량" in history:
+        liquidity = pd.to_numeric(history["거래량"], errors="coerce").dropna()
+    else:
+        return None, None, None
+
+    if liquidity.empty:
+        return None, None, None
+
+    average_20d = float(liquidity.tail(20).mean())
+    average_60d = float(liquidity.tail(60).mean())
+    latest = float(liquidity.iloc[-1])
+    return average_20d, average_60d, latest
+
+
+def percentile_score(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce").rank(method="average", pct=True).fillna(0.5)
+
+
+def build_score(frame: pd.DataFrame) -> pd.DataFrame:
+    result = frame.copy()
+    result["liquidity_score"] = percentile_score(result["raw_liquidity"])
+    result["return_score"] = percentile_score(result["return_1y"])
+    result["cost_score"] = 0.5
+    result["role_score"] = result["subtype"].map(ROLE_SCORE).fillna(ROLE_SCORE["other"])
+
+    penalty = pd.Series(0.0, index=result.index)
+    penalty += result["exclude_reason"].notna().astype(float) * 1.0
+    penalty += (result["asset_class"] == "other").astype(float) * 0.35
+    penalty += result["volatility"].isna().astype(float) * 0.1
+
+    result["score"] = (
+        0.45 * result["liquidity_score"]
+        + 0.2 * result["return_score"]
+        + 0.15 * result["cost_score"]
+        + 0.2 * result["role_score"]
+        - penalty
+    ).round(6)
+    return result
+
+
+def select_representative_rows(frame: pd.DataFrame, per_asset_class: int | None) -> pd.DataFrame:
+    if per_asset_class is None or per_asset_class <= 0:
+        return frame.sort_values(
+            ["asset_class", "score", "raw_liquidity", "product_name", "product_id"],
+            ascending=[True, False, False, True, True],
+        ).reset_index(drop=True)
+
     selected_frames = []
-    for risk_level in sorted(frame["Risk_Level"].unique()):
-        group = frame[frame["Risk_Level"] == risk_level].copy()
-        group["Liquidity_Score"] = group["AvgTradingValue(20D)"].rank(
-            method="average", pct=True
-        ).fillna(0.0) * 4.0
-        group["Stability_Score"] = (
-            1.0 - group["Volatility(%)"].rank(method="average", pct=True).fillna(1.0)
-        ) * 1.5
-        group["Selection_Score"] = (
-            group["Preference_Score"] + group["Liquidity_Score"] + group["Stability_Score"]
-        )
-        group = group.sort_values(
-            ["Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
-            ascending=[False, False, True, True, True],
-        )
-        if len(group) <= per_risk_level:
-            selected_frames.append(group)
+    for asset_class in ASSET_CLASSES:
+        group = frame[frame["asset_class"] == asset_class].copy()
+        if group.empty:
             continue
+        group = group.sort_values(
+            ["score", "raw_liquidity", "return_1y", "product_name", "product_id"],
+            ascending=[False, False, False, True, True],
+        )
 
         selected_indices = []
-        selected_themes = set()
-
-        for theme in preferred_themes_for_risk_level(int(risk_level)):
-            candidates = group[
-                (group["Theme"] == theme) & (~group.index.isin(selected_indices))
-            ]
-            if candidates.empty:
-                continue
-            selected_indices.append(candidates.index[0])
-            selected_themes.add(theme)
-            if len(selected_indices) == per_risk_level:
+        for subtype in group["subtype"].drop_duplicates().tolist():
+            candidates = group[(group["subtype"] == subtype) & (~group.index.isin(selected_indices))]
+            if not candidates.empty:
+                selected_indices.append(candidates.index[0])
+            if len(selected_indices) >= per_asset_class:
                 break
 
-        remaining = group.loc[~group.index.isin(selected_indices)].copy()
-        remaining["ThemeSeen"] = remaining["Theme"].isin(selected_themes)
-        remaining = remaining.sort_values(
-            ["ThemeSeen", "Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
-            ascending=[True, False, False, True, True, True],
-        )
-        selected_indices.extend(remaining.head(per_risk_level - len(selected_indices)).index.tolist())
+        remaining = group.loc[~group.index.isin(selected_indices)]
+        selected_indices.extend(remaining.head(per_asset_class - len(selected_indices)).index.tolist())
         selected_frames.append(group.loc[selected_indices])
 
-    result = pd.concat(selected_frames, ignore_index=True)
-    if "ThemeSeen" in result.columns:
-        result = result.drop(columns=["ThemeSeen"])
-    return result.sort_values(
-        ["Risk_Level", "Selection_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
-        ascending=[True, False, False, True, True, True],
+    if not selected_frames:
+        return frame.iloc[0:0].copy()
+
+    return pd.concat(selected_frames, ignore_index=True).sort_values(
+        ["asset_class", "score", "raw_liquidity", "product_name", "product_id"],
+        ascending=[True, False, False, True, True],
     ).reset_index(drop=True)
 
 
-def build_snapshot(
+def fetch_etf_history(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    from pykrx import stock
+
+    return stock.get_etf_ohlcv_by_date(start_date, end_date, ticker)
+
+
+def build_etf_product_pool(
     *,
-    risk_levels: Iterable[int],
-    per_risk_level: int,
-    min_history: int,
+    asset_classes: Iterable[str],
+    risk_levels: Iterable[int] | None,
+    min_returns: int,
     sleep_seconds: float,
     lookback_days: int,
+    latest_lookback_days: int,
     max_tickers: int | None,
+    per_asset_class: int | None,
+    include_excluded: bool,
 ) -> pd.DataFrame:
     from pykrx import stock
 
-    end_date, all_tickers = resolve_latest_trading_date()
+    end_date, all_tickers = resolve_latest_trading_date(latest_lookback_days)
     start_date = (datetime.strptime(end_date, "%Y%m%d") - timedelta(days=lookback_days)).strftime(
         "%Y%m%d"
     )
@@ -320,67 +519,145 @@ def build_snapshot(
 
     rows = []
     for index, ticker in enumerate(all_tickers, start=1):
-        name = stock.get_etf_ticker_name(ticker)
         try:
-            history = stock.get_etf_ohlcv_by_date(start_date, end_date, ticker)
+            name = scalar_text(stock.get_etf_ticker_name(ticker))
+        except Exception as error:
+            print(f"[{index}/{len(all_tickers)}] {ticker} - 이름 조회 실패: {error}")
+            time.sleep(sleep_seconds)
+            continue
+
+        try:
+            history = fetch_etf_history(ticker, start_date, end_date)
         except Exception as error:
             print(f"[{index}/{len(all_tickers)}] {name} - OHLCV 조회 실패: {error}")
-            time.sleep(sleep_seconds)
-            continue
+            history = pd.DataFrame()
 
-        if len(history) < min_history:
-            print(f"[{index}/{len(all_tickers)}] {name} - 상장 기간 부족으로 제외")
-            time.sleep(sleep_seconds)
-            continue
+        close = get_close_series(history)
+        volatility = compute_annualized_volatility(history, min_returns=min_returns)
+        return_1y = compute_return(close)
+        return_3m = compute_return(close, periods=63)
+        average_20d, average_60d, latest_liquidity = compute_liquidity_metrics(history)
 
-        daily_returns = history["종가"].pct_change().dropna()
-        if daily_returns.empty:
-            print(f"[{index}/{len(all_tickers)}] {name} - 수익률 계산 불가")
-            time.sleep(sleep_seconds)
-            continue
+        asset_class = classify_asset_class(name)
+        subtype = classify_subtype(name)
+        risk_level = volatility_to_risk_level(asset_class, volatility)
+        exclude_reason = get_exclude_reason(name)
+        theme = infer_theme(name, asset_class, subtype)
 
-        volatility_percent = float(daily_returns.std() * np.sqrt(252) * 100.0)
-        risk_level = classify_volatility_risk_level(volatility_percent)
-        theme = infer_theme(name)
-        theme_risk_level = infer_theme_risk_level(name)
-        average_trading_value, latest_trading_value = compute_liquidity_metrics(history)
-        preference_score, selection_reason = compute_preference_score(
-            name,
-            risk_level=risk_level,
-            theme=theme,
-            theme_risk_level=theme_risk_level,
-        )
         rows.append(
             {
-                "Ticker": ticker,
-                "Name": name,
-                "Volatility(%)": round(volatility_percent, 2),
-                "Risk_Level": risk_level,
-                "Theme_Risk_Level": theme_risk_level,
-                "Provider": infer_provider(name),
-                "Market": infer_market(name),
-                "Theme": theme,
-                "AvgTradingValue(20D)": round(average_trading_value, 2),
-                "LatestTradingValue": round(latest_trading_value, 2),
-                "Preference_Score": round(preference_score, 2),
-                "Selection_Reason": selection_reason,
-                "AsOfDate": end_date,
+                "product_id": ticker,
+                "product_name": name,
+                "provider": infer_provider(name),
+                "asset_class": asset_class,
+                "subtype": subtype,
+                "risk_level": risk_level,
+                "expected_role": infer_expected_role(asset_class, subtype),
+                "volatility": volatility,
+                "return_1y": return_1y,
+                "return_3m": return_3m,
+                "raw_liquidity": average_60d,
+                "avg_trading_value_20d": average_20d,
+                "latest_trading_value": latest_liquidity,
+                "exclude_reason": exclude_reason,
+                "as_of_date": end_date,
+                "market": infer_market(name),
+                "theme": theme,
+                "theme_risk_level": infer_theme_risk_level(name),
             }
         )
-        print(f"[{index}/{len(all_tickers)}] {name} - 변동성 {volatility_percent:.2f}%")
+        vol_text = "N/A" if volatility is None else f"{volatility * 100:.2f}%"
+        print(
+            f"[{index}/{len(all_tickers)}] {name} - {asset_class}/{subtype}, "
+            f"risk {risk_level}, vol {vol_text}"
+        )
         time.sleep(sleep_seconds)
 
     if not rows:
-        raise ValueError("ETF 스냅샷 생성 결과가 비어 있습니다.")
+        raise ValueError("ETF 상품 pool 생성 결과가 비어 있습니다.")
 
-    frame = pd.DataFrame(rows).sort_values(
-        ["Risk_Level", "Preference_Score", "AvgTradingValue(20D)", "Volatility(%)", "Name", "Ticker"],
-        ascending=[True, False, False, True, True, True],
-    )
-    frame = frame[frame["Risk_Level"].isin(list(risk_levels))].reset_index(drop=True)
+    frame = build_score(pd.DataFrame(rows))
+
+    requested_asset_classes = set(asset_classes)
+    frame = frame[frame["asset_class"].isin(requested_asset_classes)].copy()
+    if risk_levels is not None:
+        frame = frame[frame["risk_level"].isin(set(risk_levels))].copy()
+    if not include_excluded:
+        frame = frame[frame["exclude_reason"].isna()].copy()
     if frame.empty:
-        raise ValueError(f"선택한 risk_level={list(risk_levels)} 에 해당하는 ETF가 없습니다.")
-    return select_representative_rows(frame, per_risk_level)
+        raise ValueError("필터 조건에 맞는 ETF 상품이 없습니다.")
+
+    selected = select_representative_rows(frame, per_asset_class)
+    return with_legacy_columns(selected)
+
+
+def with_legacy_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    result = frame.copy()
+    volatility_percent = result["volatility"].mul(100.0)
+
+    result["Ticker"] = result["product_id"]
+    result["Name"] = result["product_name"]
+    result["Volatility(%)"] = volatility_percent.round(2)
+    result["Risk_Level"] = result["risk_level"]
+    result["Theme_Risk_Level"] = result["theme_risk_level"]
+    result["Provider"] = result["provider"]
+    result["Market"] = result["market"]
+    result["Theme"] = result["theme"]
+    result["AvgTradingValue(20D)"] = result["avg_trading_value_20d"].round(2)
+    result["LatestTradingValue"] = result["latest_trading_value"].round(2)
+    result["Preference_Score"] = result["score"].round(6)
+    result["Selection_Reason"] = result["expected_role"]
+    result["AsOfDate"] = result["as_of_date"]
+    result["Liquidity_Score"] = result["liquidity_score"].round(6)
+    result["Stability_Score"] = (1.0 - percentile_score(result["volatility"])).round(6)
+    result["Selection_Score"] = result["score"].round(6)
+
+    ordered_columns = [
+        "product_id",
+        "product_name",
+        "provider",
+        "asset_class",
+        "subtype",
+        "risk_level",
+        "expected_role",
+        "volatility",
+        "return_1y",
+        "return_3m",
+        "liquidity_score",
+        "cost_score",
+        "score",
+        "exclude_reason",
+        "raw_liquidity",
+        "avg_trading_value_20d",
+        "latest_trading_value",
+        "as_of_date",
+        "market",
+        "theme",
+        "theme_risk_level",
+        "Ticker",
+        "Name",
+        "Volatility(%)",
+        "Risk_Level",
+        "Theme_Risk_Level",
+        "Provider",
+        "Market",
+        "Theme",
+        "AvgTradingValue(20D)",
+        "LatestTradingValue",
+        "Preference_Score",
+        "Selection_Reason",
+        "AsOfDate",
+        "Liquidity_Score",
+        "Stability_Score",
+        "Selection_Score",
+    ]
+    return result[ordered_columns].reset_index(drop=True)
+
+
+def parse_optional_int_list(values: list[int] | None) -> list[int] | None:
+    if not values:
+        return None
+    return values
 
 
 def main() -> None:
@@ -392,29 +669,42 @@ def main() -> None:
         help="ETF 추천 후보 CSV 저장 경로",
     )
     parser.add_argument(
+        "--asset-classes",
+        nargs="+",
+        default=ASSET_CLASSES,
+        choices=ASSET_CLASSES,
+        help="CSV에 포함할 asset class 목록",
+    )
+    parser.add_argument(
         "--risk-levels",
         type=int,
         nargs="+",
-        default=[2, 3, 4, 5],
-        help="CSV에 포함할 ETF risk level 목록",
+        default=None,
+        help="선택적으로 CSV에 포함할 risk level 목록",
     )
     parser.add_argument(
-        "--per-risk-level",
+        "--per-asset-class",
         type=int,
-        default=8,
-        help="risk level별 대표 ETF 개수",
+        default=40,
+        help="asset class별 대표 ETF 개수. 0 이하이면 제한하지 않음",
     )
     parser.add_argument(
-        "--min-history",
+        "--min-returns",
         type=int,
-        default=120,
-        help="변동성 계산에 필요한 최소 거래일 수",
+        default=30,
+        help="변동성 계산에 필요한 최소 일별 수익률 개수",
     )
     parser.add_argument(
         "--lookback-days",
         type=int,
         default=365,
-        help="변동성 계산용 과거 조회 일수",
+        help="변동성/수익률 계산용 과거 조회 일수",
+    )
+    parser.add_argument(
+        "--latest-lookback-days",
+        type=int,
+        default=10,
+        help="최신 ETF 거래일 탐색 일수",
     )
     parser.add_argument(
         "--sleep-seconds",
@@ -428,15 +718,23 @@ def main() -> None:
         default=None,
         help="테스트용 ETF 조회 상한",
     )
+    parser.add_argument(
+        "--include-excluded",
+        action="store_true",
+        help="레버리지/인버스/합성 등 기본 제외 상품도 CSV에 포함",
+    )
     args = parser.parse_args()
 
-    snapshot = build_snapshot(
-        risk_levels=args.risk_levels,
-        per_risk_level=args.per_risk_level,
-        min_history=args.min_history,
+    snapshot = build_etf_product_pool(
+        asset_classes=args.asset_classes,
+        risk_levels=parse_optional_int_list(args.risk_levels),
+        min_returns=args.min_returns,
         sleep_seconds=args.sleep_seconds,
         lookback_days=args.lookback_days,
+        latest_lookback_days=args.latest_lookback_days,
         max_tickers=args.max_tickers,
+        per_asset_class=args.per_asset_class,
+        include_excluded=args.include_excluded,
     )
 
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -445,7 +743,9 @@ def main() -> None:
     print()
     print(f"저장 완료: {args.output_path}")
     print(f"총 {len(snapshot)}개 ETF 저장")
-    print(snapshot["Risk_Level"].value_counts().sort_index().to_string())
+    print(snapshot["asset_class"].value_counts().reindex(ASSET_CLASSES, fill_value=0).to_string())
+    print()
+    print(snapshot.groupby(["asset_class", "subtype"]).size().to_string())
 
 
 if __name__ == "__main__":
