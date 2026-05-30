@@ -5,128 +5,112 @@
   "validation_warnings": [
     "Current split 'test' differs from checkpoint split 'train'. Exact tensor hash validation was skipped."
   ],
-  "baselines": {
-    "mean_allocation": {
-      "mae": 0.18073971569538116,
-      "mean_allocation": [
-        0.34421461820602417,
-        0.1222795844078064,
-        0.012693142518401146,
-        0.18877430260181427,
-        0.18456785380840302,
-        0.14747048914432526
-      ]
-    },
-    "majority_risk": {
-      "majority_label": 0,
-      "accuracy": 0.3287950987066031,
-      "macro_f1": 0.09897540983606558
-    }
-  },
-  "source_risk_acc": 0.37168141592920356,
-  "source_risk_macro_f1": 0.23426795345622073,
-  "target_risk_acc": 0.9598366235534377,
-  "target_risk_macro_f1": 0.9530310581171182,
-  "source_alloc_mae": 0.15437188744544983,
-  "target_alloc_mae": 0.007780304178595543,
+  "source_risky_share_mae": 0.23237642645835876,
+  "target_risky_share_mae": 0.3206842243671417,
+  "source_risk_bucket_acc": 0.31041524846834584,
+  "source_risk_bucket_macro_f1": 0.2081730980263866,
+  "target_risk_bucket_acc": 0.16337644656228728,
+  "target_risk_bucket_macro_f1": 0.057279236276849645,
+  "source_alloc_mae": 0.17189748585224152,
+  "target_alloc_mae": 0.2878994345664978,
   "source_confusion_matrix": [
     [
-      336,
+      219,
+      215,
+      163,
+      0,
+      0
+    ],
+    [
       29,
-      13,
-      15,
-      90
-    ],
-    [
-      68,
-      9,
-      9,
-      8,
-      92
-    ],
-    [
       80,
-      9,
-      11,
+      156,
+      0,
+      0
+    ],
+    [
+      20,
+      63,
+      157,
+      0,
+      0
+    ],
+    [
       15,
-      136
+      74,
+      117,
+      0,
+      0
     ],
     [
-      62,
-      10,
-      7,
-      7,
-      151
-    ],
-    [
-      87,
-      11,
-      18,
-      13,
-      183
+      16,
+      37,
+      107,
+      1,
+      0
     ]
   ],
   "retrieval": {
-    "pair_recall@1": 0.005445881552076242,
-    "pair_recall@5": 0.012933968686181076,
-    "pair_recall@10": 0.02042205582028591,
-    "pair_mrr": 0.0156354618047868,
-    "label_recall@1": 0.31722260040844114,
-    "label_recall@5": 0.4540503744043567,
-    "label_recall@10": 0.504424778761062,
-    "label_mrr": 0.38570799180401716,
-    "cluster_recall@1": 0.22940776038121172,
-    "cluster_recall@5": 0.31654186521443156,
-    "cluster_recall@10": 0.3798502382573179,
-    "cluster_mrr": 0.2781810719429226
+    "pair_recall@1": 0.0020422055820285907,
+    "pair_recall@5": 0.006126616746085773,
+    "pair_recall@10": 0.01701837985023826,
+    "pair_mrr": 0.010567234056000177,
+    "label_recall@1": 0.34785568413886997,
+    "label_recall@5": 0.5963240299523486,
+    "label_recall@10": 0.6943498978897209,
+    "label_mrr": 0.46031940350776984,
+    "cluster_recall@1": 0.27978216473791695,
+    "cluster_recall@5": 0.3206262763784888,
+    "cluster_recall@10": 0.34649421375085093,
+    "cluster_mrr": 0.30274462799768376
   },
   "probe": {
     "source": {
-      "accuracy_mean": 0.3573912841587147,
-      "accuracy_std": 0.012868425430211182,
-      "macro_f1_mean": 0.2636932555166966,
-      "macro_f1_std": 0.01688531322953039
+      "accuracy_mean": 0.40231246082050565,
+      "accuracy_std": 0.012354872897067262,
+      "macro_f1_mean": 0.2589658803377713,
+      "macro_f1_std": 0.012326374446999975
     },
     "target": {
-      "accuracy_mean": 0.9523554131550231,
-      "accuracy_std": 0.006764496620063684,
-      "macro_f1_mean": 0.9423085042548388,
-      "macro_f1_std": 0.008577610996115112
+      "accuracy_mean": 0.6283206798077593,
+      "accuracy_std": 0.022044597996542147,
+      "macro_f1_mean": 0.557988386808739,
+      "macro_f1_std": 0.027513584709782768
     }
   },
   "domain_classifier": {
-    "accuracy_mean": 0.7733129367590308,
-    "accuracy_std": 0.013628207510174491
+    "accuracy_mean": 0.8396881410144978,
+    "accuracy_std": 0.013052233730358645
   },
   "silhouette": {
-    "risk_cosine": 0.05589631572365761,
-    "modality_cosine": 0.0008846423006616533
+    "risk_cosine": 0.0584850050508976,
+    "modality_cosine": 0.0010401711333543062
   },
   "centroid_distance_by_class": [
     {
       "risk_label": 0,
-      "euclidean_distance": 0.18994498252868652,
-      "cosine_distance": 0.01904916763305664
+      "euclidean_distance": 0.12261790782213211,
+      "cosine_distance": 0.007603764533996582
     },
     {
       "risk_label": 1,
-      "euclidean_distance": 0.14811259508132935,
-      "cosine_distance": 0.013837218284606934
+      "euclidean_distance": 0.10832224786281586,
+      "cosine_distance": 0.006556868553161621
     },
     {
       "risk_label": 2,
-      "euclidean_distance": 0.13674286007881165,
-      "cosine_distance": 0.011172056198120117
+      "euclidean_distance": 0.08590535819530487,
+      "cosine_distance": 0.0043277740478515625
     },
     {
       "risk_label": 3,
-      "euclidean_distance": 0.1635420173406601,
-      "cosine_distance": 0.016906678676605225
+      "euclidean_distance": 0.1544916033744812,
+      "cosine_distance": 0.014200985431671143
     },
     {
       "risk_label": 4,
-      "euclidean_distance": 0.20694305002689362,
-      "cosine_distance": 0.026766061782836914
+      "euclidean_distance": 0.16071856021881104,
+      "cosine_distance": 0.015464305877685547
     }
   ]
 }
