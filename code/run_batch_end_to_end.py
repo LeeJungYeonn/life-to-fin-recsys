@@ -9,13 +9,14 @@ import pandas as pd
 import torch
 
 from checkpoint_utils import load_dual_encoder_checkpoint
-from contrastive_utils import ordinal_logits_to_label
 from portfolio_schema import (
     BUCKET_COLUMNS,
     CATEGORICAL_COLUMNS,
     build_allocation_dataset,
     derive_risk_label_from_allocation_vector,
+    risky_share_to_bucket,
 )
+from profile_knn import load_anchor_arrays, smooth_with_profile_knn
 from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
 from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
 from recsys.ranker import UserRequest, recommend_products
@@ -42,9 +43,10 @@ def _load_products(naverpay_path: Path | None, pykrx_path: Path | None):
 def _build_summary_rows(
     df: pd.DataFrame,
     predicted_allocations: np.ndarray,
-    direct_risk: np.ndarray,
-    heuristic_risk: np.ndarray,
+    model_risk: np.ndarray,
+    allocation_risk: np.ndarray,
     used_risk: np.ndarray,
+    predicted_risky_share: np.ndarray,
     aux_allocations: np.ndarray,
     aux_risk: np.ndarray,
     quality: pd.DataFrame,
@@ -58,9 +60,10 @@ def _build_summary_rows(
         top_basket = recommendation["optimized_basket"][0] if recommendation["optimized_basket"] else {}
         row = {
             "CASEID": int(df.iloc[idx]["CASEID"]) if "CASEID" in df.columns else idx,
-            "predicted_risk_level_direct": int(direct_risk[idx]),
-            "predicted_risk_level_heuristic": int(heuristic_risk[idx]),
+            "predicted_risk_level_model": int(model_risk[idx]),
+            "predicted_risk_level_allocation": int(allocation_risk[idx]),
             "risk_level_used_for_recommendation": int(used_risk[idx]),
+            "predicted_risky_share": float(predicted_risky_share[idx]),
             "aux_risk_label": int(aux_risk[idx]),
             "aux_allocation_mae": float(alloc_mae[idx]),
             "rescaled_overlap_flag": bool(quality.iloc[idx]["rescaled_overlap_flag"]),
@@ -95,7 +98,11 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--allow-cma", action="store_true")
-    parser.add_argument("--risk-source", choices=["heuristic", "direct"], default="heuristic")
+    parser.add_argument("--risk-source", choices=["model", "allocation"], default="model")
+    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "train.csv")
+    parser.add_argument("--disable-knn-smoothing", action="store_true")
+    parser.add_argument("--knn-k", type=int, default=20)
+    parser.add_argument("--knn-alpha", type=float, default=0.7)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--output-csv", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_summary.csv")
     parser.add_argument("--output-json", type=Path, default=REPO_ROOT / "checkpoints" / "batch_end_to_end_details.json")
@@ -126,21 +133,50 @@ def main() -> None:
     )
 
     predicted_allocations = []
-    direct_risk = []
+    predicted_risky_share = []
     with torch.no_grad():
         for start in range(0, len(x_cat), args.batch_size):
             batch_x_cat = x_cat[start : start + args.batch_size].to(device)
             source_output = source_encoder(batch_x_cat)
             predicted_allocations.append(source_output.allocation_probs.cpu().numpy())
-            direct_risk.append(ordinal_logits_to_label(source_output.risk_logits).cpu().numpy())
+            predicted_risky_share.append(source_output.risky_share.squeeze(1).cpu().numpy())
 
     predicted_allocations_np = np.concatenate(predicted_allocations, axis=0)
-    direct_risk_np = np.concatenate(direct_risk, axis=0)
-    heuristic_risk_np = np.array(
+    predicted_risky_share_np = np.concatenate(predicted_risky_share, axis=0)
+
+    if not args.disable_knn_smoothing:
+        x_anchor_cat, anchor_allocs, anchor_risky_shares = load_anchor_arrays(
+            str(args.anchor_csv),
+            cardinalities,
+        )
+        smoothed_allocations = []
+        smoothed_risky = []
+        for idx, allocation in enumerate(predicted_allocations_np):
+            smoothing_result = smooth_with_profile_knn(
+                x_user_cat=x_cat[idx].numpy(),
+                x_anchor_cat=x_anchor_cat,
+                pred_alloc=allocation,
+                anchor_allocs=anchor_allocs,
+                pred_risky_share=float(predicted_risky_share_np[idx]),
+                anchor_risky_shares=anchor_risky_shares,
+                cardinalities=cardinalities,
+                k=args.knn_k,
+                alpha=args.knn_alpha,
+            )
+            smoothed_allocations.append(smoothing_result.allocation)
+            smoothed_risky.append(smoothing_result.risky_share)
+        predicted_allocations_np = np.vstack(smoothed_allocations).astype(np.float32)
+        predicted_risky_share_np = np.array(smoothed_risky, dtype=np.float32)
+
+    model_risk_np = np.array(
+        [risky_share_to_bucket(float(value)) for value in predicted_risky_share_np],
+        dtype=np.int64,
+    )
+    allocation_risk_np = np.array(
         [derive_risk_label_from_allocation_vector(allocation) for allocation in predicted_allocations_np],
         dtype=np.int64,
     )
-    risk_for_recs_np = heuristic_risk_np if args.risk_source == "heuristic" else direct_risk_np
+    risk_for_recs_np = model_risk_np if args.risk_source == "model" else allocation_risk_np
 
     products = _load_products(args.naverpay_path, args.pykrx_path)
     recommendations = []
@@ -159,9 +195,10 @@ def main() -> None:
     summary_rows = _build_summary_rows(
         df=df,
         predicted_allocations=predicted_allocations_np,
-        direct_risk=direct_risk_np,
-        heuristic_risk=heuristic_risk_np,
+        model_risk=model_risk_np,
+        allocation_risk=allocation_risk_np,
         used_risk=risk_for_recs_np,
+        predicted_risky_share=predicted_risky_share_np,
         aux_allocations=aux_allocations,
         aux_risk=aux_risk,
         quality=build_result.quality_frame,
@@ -183,11 +220,17 @@ def main() -> None:
             "pred_vs_aux_allocation_mae_mean": float(
                 np.mean(np.abs(predicted_allocations_np - aux_allocations))
             ),
-            "pred_vs_aux_risk_match_rate": float(np.mean(direct_risk_np == aux_risk)),
-            "pred_vs_aux_heuristic_risk_match_rate": float(np.mean(heuristic_risk_np == aux_risk)),
+            "pred_vs_aux_model_risk_match_rate": float(np.mean(model_risk_np == aux_risk)),
+            "pred_vs_aux_allocation_risk_match_rate": float(np.mean(allocation_risk_np == aux_risk)),
             "overlap_rescaled_share": float(build_result.quality_frame["rescaled_overlap_flag"].mean()),
         },
         "risk_source_used_for_recommendation": args.risk_source,
+        "knn_smoothing": {
+            "enabled": not args.disable_knn_smoothing,
+            "anchor_csv": str(args.anchor_csv),
+            "k": args.knn_k,
+            "alpha": args.knn_alpha,
+        },
         "rows": summary_rows,
     }
     args.output_json.write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")

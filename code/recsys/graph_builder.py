@@ -44,8 +44,12 @@ def diffuse_product_scores(
         next_scores = {}
         for product in products:
             neighbor_score = 0.0
+            neighbor_weight = 0.0
             for neighbor_id, weight in similarity[product.product_id].items():
                 neighbor_score += scores.get(neighbor_id, 0.0) * weight
+                neighbor_weight += weight
+            if neighbor_weight > 0.0:
+                neighbor_score = neighbor_score / neighbor_weight
             next_scores[product.product_id] = (1 - alpha) * base_scores.get(product.product_id, 0.0) + alpha * neighbor_score
         scores = next_scores
     return scores

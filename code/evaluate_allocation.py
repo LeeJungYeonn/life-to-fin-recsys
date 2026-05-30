@@ -15,8 +15,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from checkpoint_utils import load_dual_encoder_checkpoint
-from contrastive_utils import ordinal_logits_to_label
 from portfolio_schema import CATEGORICAL_COLUMNS
+from portfolio_schema import risky_share_to_bucket
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -137,6 +137,8 @@ def main() -> None:
     train_labels = torch.load(args.processed_dir / "train_labels_tensor.pt")
     x_cat = torch.load(args.processed_dir / f"{args.split}_x_cat_tensor.pt")
     x_alloc = torch.load(args.processed_dir / f"{args.split}_x_alloc_tensor.pt")
+    risky_share_path = args.processed_dir / f"{args.split}_risky_share_tensor.pt"
+    risky_share = torch.load(risky_share_path) if risky_share_path.exists() else x_alloc[:, -1:].clone()
     labels = torch.load(args.processed_dir / f"{args.split}_labels_tensor.pt")
     clusters = torch.load(args.processed_dir / f"{args.split}_cluster_tensor.pt")
     cardinalities = torch.load(args.processed_dir / f"{args.split}_cardinalities.pt").tolist()
@@ -160,8 +162,17 @@ def main() -> None:
 
     source_probs = source_output.allocation_probs.cpu()
     target_probs = target_output.allocation_probs.cpu()
-    source_pred = ordinal_logits_to_label(source_output.risk_logits).cpu().numpy()
-    target_pred = ordinal_logits_to_label(target_output.risk_logits).cpu().numpy()
+    source_risky_share = source_output.risky_share.squeeze(1).cpu()
+    target_risky_share = target_output.risky_share.squeeze(1).cpu()
+    source_pred = np.array(
+        [risky_share_to_bucket(float(value)) for value in source_risky_share.tolist()],
+        dtype=np.int64,
+    )
+    target_pred = np.array(
+        [risky_share_to_bucket(float(value)) for value in target_risky_share.tolist()],
+        dtype=np.int64,
+    )
+    risky_share_np = risky_share.squeeze(1).numpy()
     labels_np = labels.numpy()
     clusters_np = clusters.numpy()
 
@@ -177,14 +188,12 @@ def main() -> None:
         "num_examples": int(len(labels_np)),
         "checkpoint_prefix": args.prefix,
         "validation_warnings": validation["warnings"],
-        "baselines": {
-            "mean_allocation": mean_allocation_baseline(train_x_alloc, x_alloc),
-            "majority_risk": majority_risk_baseline(train_labels, labels),
-        },
-        "source_risk_acc": float(accuracy_score(labels_np, source_pred)),
-        "source_risk_macro_f1": float(f1_score(labels_np, source_pred, average="macro")),
-        "target_risk_acc": float(accuracy_score(labels_np, target_pred)),
-        "target_risk_macro_f1": float(f1_score(labels_np, target_pred, average="macro")),
+        "source_risky_share_mae": float(np.mean(np.abs(source_risky_share.numpy() - risky_share_np))),
+        "target_risky_share_mae": float(np.mean(np.abs(target_risky_share.numpy() - risky_share_np))),
+        "source_risk_bucket_acc": float(accuracy_score(labels_np, source_pred)),
+        "source_risk_bucket_macro_f1": float(f1_score(labels_np, source_pred, average="macro")),
+        "target_risk_bucket_acc": float(accuracy_score(labels_np, target_pred)),
+        "target_risk_bucket_macro_f1": float(f1_score(labels_np, target_pred, average="macro")),
         "source_alloc_mae": float(torch.mean(torch.abs(source_probs - x_alloc)).item()),
         "target_alloc_mae": float(torch.mean(torch.abs(target_probs - x_alloc)).item()),
         "source_confusion_matrix": confusion_matrix(labels_np, source_pred).tolist(),

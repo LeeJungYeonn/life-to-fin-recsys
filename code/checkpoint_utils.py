@@ -382,6 +382,7 @@ def load_dual_encoder_checkpoint(
         projection_dim=int(model_config.get("projection_dim", 64)),
         num_risk_levels=int(model_config.get("num_risk_levels", 5)),
         ratio_dim=int(model_config.get("ratio_dim", model_config["target_input_dim"])),
+        dropout=float(model_config.get("dropout", 0.2)),
     ).to(device)
     target_encoder = TargetEncoder(
         input_dim=int(model_config["target_input_dim"]),

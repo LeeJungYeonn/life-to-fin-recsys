@@ -23,7 +23,8 @@ def _filter_products(products: Iterable[Product], request: UserRequest) -> List[
         if request.risk_level <= 1:
             if product.category == "cma" and not request.allow_cma:
                 continue
-            if product.product_type == "etf":
+            exposure = product.exposure.as_dict()
+            if product.product_type == "etf" and exposure.get("equity", 0.0) > 0.05:
                 continue
         if request.risk_level <= 2 and product.category == "cma" and not request.allow_cma:
             continue

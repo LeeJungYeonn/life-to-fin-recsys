@@ -24,14 +24,14 @@ DEFAULT_SNAPSHOT_CANDIDATES = [
 
 def _default_exposure(category: str) -> ProductExposure:
     if category == "cma":
-        return ProductExposure(cash_eq=1.0)
+        return ProductExposure(cash=1.0)
     if category == "parking":
-        return ProductExposure(cash_eq=1.0)
+        return ProductExposure(cash=1.0)
     if category == "deposit":
-        return ProductExposure(cash_eq=0.9, retirement_safe=0.1)
+        return ProductExposure(cash=1.0)
     if category == "saving":
-        return ProductExposure(cash_eq=0.8, retirement_safe=0.2)
-    return ProductExposure(other_fin=1.0)
+        return ProductExposure(cash=1.0)
+    return ProductExposure(cash=1.0)
 
 
 def load_snapshot(path: Path) -> List[Product]:

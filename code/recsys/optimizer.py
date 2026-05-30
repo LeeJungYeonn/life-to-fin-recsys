@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from .product_schema import Product
+from .product_schema import BUCKET_COLUMNS, Product
 
 
 def _project_simplex(weights: np.ndarray) -> np.ndarray:
@@ -15,6 +15,63 @@ def _project_simplex(weights: np.ndarray) -> np.ndarray:
     return weights / total
 
 
+def _dominant_bucket(product: Product) -> str:
+    exposure = np.array(product.exposure_vector(), dtype=np.float32)
+    if exposure.sum() <= 0.0:
+        return BUCKET_COLUMNS[0]
+    return BUCKET_COLUMNS[int(np.argmax(exposure))]
+
+
+def _allocate_slots(target_allocation: np.ndarray, top_k: int) -> np.ndarray:
+    target = _project_simplex(np.asarray(target_allocation, dtype=np.float32))
+    raw = target * top_k
+    slots = np.floor(raw).astype(int)
+    positive = target > 0.0
+    slots[(slots == 0) & positive] = 1
+    while slots.sum() > top_k:
+        candidates = np.where(slots > 0)[0]
+        idx = candidates[np.argmin(raw[candidates] - np.floor(raw[candidates]))]
+        slots[idx] -= 1
+    while slots.sum() < top_k:
+        idx = int(np.argmax(raw - slots))
+        slots[idx] += 1
+    return slots
+
+
+def _select_allocation_aware_products(
+    target_allocation: np.ndarray,
+    products: List[Product],
+    scores: Dict[str, float],
+    top_k: int,
+) -> List[Product]:
+    selected: list[Product] = []
+    selected_ids: set[str] = set()
+    slots = _allocate_slots(target_allocation, top_k)
+
+    by_bucket = {bucket: [] for bucket in BUCKET_COLUMNS}
+    for product in products:
+        by_bucket[_dominant_bucket(product)].append(product)
+    for bucket_products in by_bucket.values():
+        bucket_products.sort(key=lambda product: scores.get(product.product_id, 0.0), reverse=True)
+
+    for bucket_idx, bucket in enumerate(BUCKET_COLUMNS):
+        for product in by_bucket[bucket]:
+            if len([p for p in selected if _dominant_bucket(p) == bucket]) >= slots[bucket_idx]:
+                break
+            if product.product_id not in selected_ids:
+                selected.append(product)
+                selected_ids.add(product.product_id)
+
+    for product in sorted(products, key=lambda item: scores.get(item.product_id, 0.0), reverse=True):
+        if len(selected) >= top_k:
+            break
+        if product.product_id not in selected_ids:
+            selected.append(product)
+            selected_ids.add(product.product_id)
+
+    return selected[:top_k]
+
+
 def optimize_product_mix(
     target_allocation: np.ndarray,
     products: List[Product],
@@ -23,7 +80,7 @@ def optimize_product_mix(
     top_k: int = 5,
     max_weight: float = 0.7,
 ) -> List[dict]:
-    ranked = sorted(products, key=lambda product: scores.get(product.product_id, 0.0), reverse=True)[:top_k]
+    ranked = _select_allocation_aware_products(target_allocation, products, scores, top_k)
     if not ranked:
         return []
 

@@ -13,6 +13,8 @@ class EncoderOutput:
     hidden: torch.Tensor
     embedding: torch.Tensor
     risk_logits: Optional[torch.Tensor] = None
+    risky_share_logits: Optional[torch.Tensor] = None
+    risky_share: Optional[torch.Tensor] = None
     allocation_logits: Optional[torch.Tensor] = None
     allocation_probs: Optional[torch.Tensor] = None
     ratio_logits: Optional[torch.Tensor] = None
@@ -33,6 +35,7 @@ class SourceEncoder(nn.Module):
         num_risk_levels=5,
         ratio_dim=4,
         allocation_dim=None,
+        dropout=0.2,
     ):
         super().__init__()
         self.output_dim = output_dim
@@ -47,7 +50,7 @@ class SourceEncoder(nn.Module):
 
         self.fc1 = nn.Linear(total_embed_dim, 256)
         self.bn1 = nn.BatchNorm1d(256)
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(dropout)
         self.fc2 = nn.Linear(256, output_dim)
         self.bn2 = nn.BatchNorm1d(output_dim)
 
@@ -60,7 +63,7 @@ class SourceEncoder(nn.Module):
             nn.Linear(output_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(hidden_dim, num_risk_levels - 1),
+            nn.Linear(hidden_dim, 1),
         )
         self.ratio_head = nn.Sequential(
             nn.Linear(output_dim, hidden_dim),
@@ -84,6 +87,7 @@ class SourceEncoder(nn.Module):
         embedding = self.proj2(embedding)
 
         risk_logits = self.risk_head(hidden)
+        risky_share = torch.sigmoid(risk_logits)
         allocation_logits = self.ratio_head(hidden)
         allocation_probs = F.softmax(allocation_logits, dim=1)
 
@@ -91,6 +95,8 @@ class SourceEncoder(nn.Module):
             hidden=hidden,
             embedding=embedding,
             risk_logits=risk_logits,
+            risky_share_logits=risk_logits,
+            risky_share=risky_share,
             allocation_logits=allocation_logits,
             allocation_probs=allocation_probs,
             ratio_logits=allocation_logits,
@@ -131,7 +137,7 @@ class TargetEncoder(nn.Module):
             nn.Linear(output_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(hidden_dim, num_risk_levels - 1),
+            nn.Linear(hidden_dim, 1),
         )
         self.ratio_head = nn.Sequential(
             nn.Linear(output_dim, hidden_dim),
@@ -148,6 +154,7 @@ class TargetEncoder(nn.Module):
         embedding = self.proj2(embedding)
 
         risk_logits = self.risk_head(hidden)
+        risky_share = torch.sigmoid(risk_logits)
         allocation_logits = self.ratio_head(hidden)
         allocation_probs = F.softmax(allocation_logits, dim=1)
 
@@ -155,6 +162,8 @@ class TargetEncoder(nn.Module):
             hidden=hidden,
             embedding=embedding,
             risk_logits=risk_logits,
+            risky_share_logits=risk_logits,
+            risky_share=risky_share,
             allocation_logits=allocation_logits,
             allocation_probs=allocation_probs,
             ratio_logits=allocation_logits,

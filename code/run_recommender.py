@@ -17,9 +17,9 @@ def main() -> None:
     parser.add_argument(
         "--allocation",
         type=float,
-        nargs=6,
+        nargs=4,
         required=True,
-        metavar=("CASH_EQ", "TAXABLE_EQUITY", "TAXABLE_BOND", "RET_EQUITY", "RET_SAFE", "OTHER_FIN"),
+        metavar=("CASH", "BOND", "PENSION", "EQUITY"),
     )
     parser.add_argument("--allow-cma", action="store_true")
     parser.add_argument("--naverpay-path", type=Path, default=None)

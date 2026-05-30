@@ -5,23 +5,19 @@ from typing import Dict, List
 
 
 BUCKET_COLUMNS = [
-    "cash_eq",
-    "taxable_equity",
-    "taxable_bond",
-    "retirement_equity",
-    "retirement_safe",
-    "other_fin",
+    "cash",
+    "bond",
+    "pension",
+    "equity",
 ]
 
 
 @dataclass
 class ProductExposure:
-    cash_eq: float = 0.0
-    taxable_equity: float = 0.0
-    taxable_bond: float = 0.0
-    retirement_equity: float = 0.0
-    retirement_safe: float = 0.0
-    other_fin: float = 0.0
+    cash: float = 0.0
+    bond: float = 0.0
+    pension: float = 0.0
+    equity: float = 0.0
 
     def as_dict(self) -> Dict[str, float]:
         return {bucket: float(getattr(self, bucket)) for bucket in BUCKET_COLUMNS}

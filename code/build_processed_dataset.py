@@ -29,6 +29,7 @@ def build_split(
 
     x_cat_tensor = torch.tensor(result.categorical_frame.values, dtype=torch.long)
     x_alloc_tensor = torch.tensor(result.allocation_frame.values, dtype=torch.float32)
+    risky_share_tensor = torch.tensor(result.risky_share.values, dtype=torch.float32).unsqueeze(1)
     labels_tensor = torch.tensor(result.labels.values, dtype=torch.long)
     clusters_tensor = torch.tensor(cluster_ids, dtype=torch.long)
     cardinalities_tensor = torch.tensor(cardinalities, dtype=torch.long)
@@ -36,6 +37,7 @@ def build_split(
     torch.save(x_cat_tensor, processed_dir / f"{split_name}_x_cat_tensor.pt")
     torch.save(x_alloc_tensor, processed_dir / f"{split_name}_x_alloc_tensor.pt")
     torch.save(x_alloc_tensor, processed_dir / f"{split_name}_x_ratio_tensor.pt")
+    torch.save(risky_share_tensor, processed_dir / f"{split_name}_risky_share_tensor.pt")
     torch.save(labels_tensor, processed_dir / f"{split_name}_labels_tensor.pt")
     torch.save(clusters_tensor, processed_dir / f"{split_name}_cluster_tensor.pt")
     torch.save(cardinalities_tensor, processed_dir / f"{split_name}_cardinalities.pt")

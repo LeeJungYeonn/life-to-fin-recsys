@@ -17,14 +17,14 @@ DEFAULT_SNAPSHOT_CANDIDATES = [
 def classify_etf_exposure(name: str) -> ProductExposure:
     lowered = name.lower()
     if any(token in name for token in ["국고채", "단기채", "통안채", "회사채", "채권", "bond"]):
-        return ProductExposure(taxable_bond=1.0)
+        return ProductExposure(bond=1.0)
     if any(token in name for token in ["파킹", "머니마켓", "mmf"]):
-        return ProductExposure(cash_eq=1.0)
+        return ProductExposure(cash=1.0)
     if any(token in name for token in ["연금", "은퇴", "target date", "tdf"]):
-        return ProductExposure(retirement_equity=0.6, retirement_safe=0.4)
+        return ProductExposure(pension=1.0)
     if any(token in lowered for token in ["high dividend", "dividend", "고배당"]):
-        return ProductExposure(taxable_equity=0.8, taxable_bond=0.2)
-    return ProductExposure(taxable_equity=1.0)
+        return ProductExposure(equity=0.8, bond=0.2)
+    return ProductExposure(equity=1.0)
 
 
 def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
