@@ -11,6 +11,10 @@ code/__pycache__/
 # Smoke / tmp checkpoints
 checkpoints/smoke_*
 checkpoints/tmp_*
+checkpoints/batch_smoke_*
+
+# Hyperparameter search artifacts
+checkpoints/grid_search/
 
 # Optional: generated evaluation artifacts
 dataset/processed/*_quality.csv
