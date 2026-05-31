@@ -70,6 +70,10 @@ def _date_arg(value: str) -> str:
     return pd.Timestamp(value).strftime("%Y%m%d")
 
 
+def _date_display(value: str) -> str:
+    return pd.Timestamp(value).strftime("%Y-%m-%d")
+
+
 def _parse_source_prefixes(value: str) -> list[tuple[str, str]]:
     pairs = []
     for item in value.split(","):
@@ -82,6 +86,38 @@ def _parse_source_prefixes(value: str) -> list[tuple[str, str]]:
 
 def _parse_int_list(value: str) -> list[int]:
     return [int(item.strip()) for item in value.split(",") if item.strip()]
+
+
+def make_random_periods(
+    *,
+    start_date: str,
+    end_date: str,
+    num_periods: int,
+    min_days: int,
+    max_days: int,
+    seed: int,
+) -> list[tuple[int, str, str]]:
+    if num_periods <= 0:
+        return [(1, start_date, end_date)]
+    start_ts = pd.Timestamp(start_date)
+    end_ts = pd.Timestamp(end_date)
+    total_days = int((end_ts - start_ts).days)
+    if total_days < min_days:
+        raise ValueError("Random period range is shorter than --random-period-min-days.")
+    max_days = min(max_days, total_days)
+    if min_days > max_days:
+        raise ValueError("--random-period-min-days cannot be greater than --random-period-max-days.")
+
+    rng = np.random.default_rng(seed)
+    periods = []
+    for period_id in range(1, num_periods + 1):
+        length = int(rng.integers(min_days, max_days + 1))
+        latest_start_offset = total_days - length
+        offset = int(rng.integers(0, latest_start_offset + 1))
+        period_start = start_ts + pd.Timedelta(days=offset)
+        period_end = period_start + pd.Timedelta(days=length)
+        periods.append((period_id, period_start.strftime("%Y%m%d"), period_end.strftime("%Y%m%d")))
+    return periods
 
 
 def sample_indices_by_risk_label(
@@ -448,6 +484,40 @@ def build_comparison_rows(
     return rows
 
 
+def average_comparison_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        return []
+
+    group_cols = ["risk_label", "portfolio"]
+    mean_cols = [
+        "sharpe_ratio",
+        "excess_sharpe_vs_benchmark",
+        "annualized_return",
+        "annualized_volatility",
+        "cumulative_return",
+        "num_return_days",
+        "num_test_users",
+        "user_sharpe_hit_rate_vs_benchmark",
+        "user_sharpe_mean",
+        "user_sharpe_median",
+        "mean_weight_cash",
+        "mean_weight_bond",
+        "mean_weight_pension",
+        "mean_weight_equity",
+    ]
+    averaged = frame.groupby(group_cols, dropna=False)[mean_cols].mean(numeric_only=True).reset_index()
+    period_counts = frame.groupby(group_cols, dropna=False)["period_id"].nunique().reset_index(name="num_periods")
+    sample_sizes = frame.groupby(group_cols, dropna=False)["sample_size"].first().reset_index()
+    averaged = averaged.merge(period_counts, on=group_cols, how="left")
+    averaged = averaged.merge(sample_sizes, on=group_cols, how="left")
+    columns = ["risk_label", "sample_size", "portfolio", "num_periods"] + [
+        col for col in averaged.columns if col not in {"risk_label", "sample_size", "portfolio", "num_periods"}
+    ]
+    averaged = averaged[columns]
+    return averaged.to_dict(orient="records")
+
+
 def _json_ready(value: object) -> object:
     if isinstance(value, dict):
         return {str(key): _json_ready(val) for key, val in value.items()}
@@ -505,6 +575,12 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "checkpoints" / "proxy_etf_sharpe")
     parser.add_argument("--start-date", type=_date_arg, default="20220101")
     parser.add_argument("--end-date", type=_date_arg, default="20241231")
+    parser.add_argument("--random-periods", type=int, default=0)
+    parser.add_argument("--random-period-start-date", type=_date_arg, default="20200101")
+    parser.add_argument("--random-period-end-date", type=_date_arg, default=date.today().strftime("%Y%m%d"))
+    parser.add_argument("--random-period-min-days", type=int, default=365)
+    parser.add_argument("--random-period-max-days", type=int, default=900)
+    parser.add_argument("--period-seed", type=int, default=None)
     # parser.add_argument("--end-date", type=_date_arg, default=date.today().strftime("%Y%m%d"))
     parser.add_argument("--price-column", type=str, default="종가")
     parser.add_argument("--fill-method", choices=["none", "ffill"], default="ffill")
@@ -526,17 +602,6 @@ def main() -> None:
         raise ValueError("Batch-detail allocation evaluation expects exactly one model name.")
     risk_labels = _parse_int_list(args.risk_labels)
 
-    prices = fetch_pykrx_price_frame(
-        start_date=args.start_date,
-        end_date=args.end_date,
-        price_column=args.price_column,
-        fill_method=args.fill_method,
-    )
-    prices = prices.dropna(subset=BUCKET_COLUMNS + ["benchmark"], how="any")
-    returns = prices.pct_change().dropna(how="any")
-    if returns.empty:
-        raise ValueError("No overlapping return rows remain after aligning PyKrx ETF price data.")
-
     expected_test_rows = int(torch.load(args.processed_dir / "test_x_cat_tensor.pt").shape[0])
     indices_by_label = sample_indices_by_risk_label(
         test_csv_path=args.test_csv,
@@ -551,41 +616,86 @@ def main() -> None:
     comparison_rows: list[dict[str, object]] = []
     sample_index_payload: dict[str, list[int]] = {}
     sample_caseid_payload: dict[str, list[int]] = {}
-    for risk_label, test_indices in indices_by_label.items():
-        allocations, caseids = load_batch_allocations_for_indices(
-            batch_details_path=args.batch_details,
-            test_csv_path=args.test_csv,
-            test_indices=test_indices,
+    period_seed = args.seed if args.period_seed is None else args.period_seed
+    periods = make_random_periods(
+        start_date=args.random_period_start_date if args.random_periods else args.start_date,
+        end_date=args.random_period_end_date if args.random_periods else args.end_date,
+        num_periods=args.random_periods,
+        min_days=args.random_period_min_days,
+        max_days=args.random_period_max_days,
+        seed=period_seed,
+    )
+    period_payload: list[dict[str, object]] = []
+
+    for period_id, period_start, period_end in periods:
+        prices = fetch_pykrx_price_frame(
+            start_date=period_start,
+            end_date=period_end,
+            price_column=args.price_column,
+            fill_method=args.fill_method,
         )
-        selected_predictions = {model_names[0]: allocations}
-
-        rows = [
-            evaluate_proxy_sharpe(
-                model_name,
-                allocation,
-                returns[BUCKET_COLUMNS],
-                returns["benchmark"],
-                annualization=args.annualization,
-                risk_free_rate=args.risk_free_rate,
+        prices = prices.dropna(subset=BUCKET_COLUMNS + ["benchmark"], how="any")
+        returns = prices.pct_change().dropna(how="any")
+        if returns.empty:
+            raise ValueError(
+                f"No overlapping return rows remain for period {period_id}: "
+                f"{period_start} to {period_end}."
             )
-            for model_name, allocation in selected_predictions.items()
-        ]
-        group = {
-            "risk_label": risk_label,
-            "sample_size": int(len(test_indices)),
-        }
-        comparison_rows.extend(build_comparison_rows(rows, group=group))
-        for row in rows:
-            detail_rows.append({**group, **row})
-        sample_index_payload[str(risk_label)] = [int(idx) for idx in test_indices.tolist()]
-        sample_caseid_payload[str(risk_label)] = caseids
+        period_payload.append(
+            {
+                "period_id": period_id,
+                "requested_start": _date_display(period_start),
+                "requested_end": _date_display(period_end),
+                "price_start": returns.index.min(),
+                "price_end": returns.index.max(),
+                "num_return_days": int(len(returns)),
+            }
+        )
 
-    frame = pd.DataFrame(comparison_rows)
+        for risk_label, test_indices in indices_by_label.items():
+            allocations, caseids = load_batch_allocations_for_indices(
+                batch_details_path=args.batch_details,
+                test_csv_path=args.test_csv,
+                test_indices=test_indices,
+            )
+            selected_predictions = {model_names[0]: allocations}
+
+            rows = [
+                evaluate_proxy_sharpe(
+                    model_name,
+                    allocation,
+                    returns[BUCKET_COLUMNS],
+                    returns["benchmark"],
+                    annualization=args.annualization,
+                    risk_free_rate=args.risk_free_rate,
+                )
+                for model_name, allocation in selected_predictions.items()
+            ]
+            group = {
+                "period_id": period_id,
+                "requested_start": _date_display(period_start),
+                "requested_end": _date_display(period_end),
+                "price_start": returns.index.min(),
+                "price_end": returns.index.max(),
+                "risk_label": risk_label,
+                "sample_size": int(len(test_indices)),
+            }
+            comparison_rows.extend(build_comparison_rows(rows, group=group))
+            for row in rows:
+                detail_rows.append({**group, **row})
+            sample_index_payload[str(risk_label)] = [int(idx) for idx in test_indices.tolist()]
+            sample_caseid_payload[str(risk_label)] = caseids
+
+    averaged_rows = average_comparison_rows(comparison_rows) if args.random_periods else comparison_rows
+    frame = pd.DataFrame(averaged_rows)
     csv_path = args.output_dir / "proxy_etf_sharpe.csv"
     json_path = args.output_dir / "proxy_etf_sharpe.json"
     md_path = args.output_dir / "proxy_etf_sharpe.md"
+    period_csv_path = args.output_dir / "proxy_etf_sharpe_periods.csv"
 
     frame.to_csv(csv_path, index=False)
+    if args.random_periods:
+        pd.DataFrame(comparison_rows).to_csv(period_csv_path, index=False)
     md_path.write_text(_frame_to_markdown(frame), encoding="utf-8")
     report = {
         "config": {
@@ -604,6 +714,13 @@ def main() -> None:
             "models": model_names,
             "start_date": args.start_date,
             "end_date": args.end_date,
+            "random_periods": args.random_periods,
+            "random_period_start_date": args.random_period_start_date,
+            "random_period_end_date": args.random_period_end_date,
+            "random_period_min_days": args.random_period_min_days,
+            "random_period_max_days": args.random_period_max_days,
+            "period_seed": period_seed,
+            "periods": period_payload,
             "price_column": args.price_column,
             "fill_method": args.fill_method,
             "annualization": args.annualization,
@@ -611,10 +728,9 @@ def main() -> None:
             "bucket_columns": BUCKET_COLUMNS,
             "proxy_etfs": PROXY_ETFS,
             "benchmark_etf": BENCHMARK_ETF,
-            "price_start": returns.index.min(),
-            "price_end": returns.index.max(),
         },
-        "results": comparison_rows,
+        "results": averaged_rows,
+        "period_results": comparison_rows,
         "model_details": detail_rows,
     }
     json_path.write_text(json.dumps(_json_ready(report), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -622,6 +738,8 @@ def main() -> None:
     print(frame.to_string(index=False))
     print(f"saved json: {json_path}")
     print(f"saved csv: {csv_path}")
+    if args.random_periods:
+        print(f"saved period csv: {period_csv_path}")
     print(f"saved md: {md_path}")
 
 
