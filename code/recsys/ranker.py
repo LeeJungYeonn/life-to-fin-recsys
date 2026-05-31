@@ -7,7 +7,7 @@ import numpy as np
 
 from .graph_builder import bucket_affinity, diffuse_product_scores
 from .optimizer import optimize_product_mix
-from .product_schema import Product
+from .product_schema import BUCKET_COLUMNS, Product
 
 
 @dataclass
@@ -19,12 +19,18 @@ class UserRequest:
 
 def _filter_products(products: Iterable[Product], request: UserRequest) -> List[Product]:
     filtered = []
+    equity_idx = BUCKET_COLUMNS.index("equity")
+    target_equity = float(request.predicted_allocation[equity_idx])
     for product in products:
         if request.risk_level <= 1:
             if product.category == "cma" and not request.allow_cma:
                 continue
             exposure = product.exposure.as_dict()
-            if product.product_type == "etf" and exposure.get("equity", 0.0) > 0.05:
+            if (
+                product.product_type == "etf"
+                and exposure.get("equity", 0.0) > 0.05
+                and target_equity <= 0.0
+            ):
                 continue
         if request.risk_level <= 2 and product.category == "cma" and not request.allow_cma:
             continue
@@ -34,6 +40,8 @@ def _filter_products(products: Iterable[Product], request: UserRequest) -> List[
 
 def _score_product(product: Product, request: UserRequest) -> float:
     allocation_match = bucket_affinity(request.predicted_allocation, product)
+    preference_score = product.metadata.get("preference_score")
+    preference_bonus = 0.2 * float(preference_score) if preference_score is not None else 0.0
     yield_bonus = 0.0
     if product.max_rate is not None:
         yield_bonus += 0.05 * product.max_rate
@@ -43,7 +51,15 @@ def _score_product(product: Product, request: UserRequest) -> float:
     insurance_bonus = 0.1 if product.deposit_insurance else -0.15
     liquidity_bonus = 0.1 if product.liquidity_tier == "high" else 0.0
     cma_penalty = 0.25 if product.category == "cma" and request.risk_level <= 1 and not request.allow_cma else 0.0
-    return allocation_match + yield_bonus + safety_bonus + insurance_bonus + liquidity_bonus - cma_penalty
+    return (
+        allocation_match
+        + preference_bonus
+        + yield_bonus
+        + safety_bonus
+        + insurance_bonus
+        + liquidity_bonus
+        - cma_penalty
+    )
 
 
 def recommend_products(products: Iterable[Product], request: UserRequest, top_k: int = 5) -> Dict[str, object]:

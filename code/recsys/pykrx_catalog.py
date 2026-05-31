@@ -14,6 +14,29 @@ DEFAULT_SNAPSHOT_CANDIDATES = [
 ]
 
 
+def _first_present(row: dict, *columns: str):
+    for column in columns:
+        value = row.get(column)
+        if pd.notna(value):
+            return value
+    return None
+
+
+def exposure_from_asset_class(asset_class: str | None) -> ProductExposure | None:
+    if asset_class is None:
+        return None
+    normalized = str(asset_class).strip().lower()
+    if normalized == "cash":
+        return ProductExposure(cash=1.0)
+    if normalized == "bond":
+        return ProductExposure(bond=1.0)
+    if normalized == "pension":
+        return ProductExposure(pension=1.0)
+    if normalized == "equity":
+        return ProductExposure(equity=1.0)
+    return None
+
+
 def classify_etf_exposure(name: str) -> ProductExposure:
     lowered = name.lower()
     if any(token in name for token in ["국고채", "단기채", "통안채", "회사채", "채권", "bond"]):
@@ -30,13 +53,18 @@ def classify_etf_exposure(name: str) -> ProductExposure:
 def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
     products = []
     for row in snapshot.to_dict(orient="records"):
-        name = str(row["Name"])
-        risk_level = row.get("Risk_Level")
+        name = str(_first_present(row, "Name", "product_name") or row["Ticker"])
+        risk_level = _first_present(row, "Risk_Level", "risk_level")
         category = str(int(risk_level)) if pd.notna(risk_level) else "unknown"
-        provider = str(row.get("Provider") or name.split()[0] or "ETF")
+        provider = str(_first_present(row, "Provider", "provider") or name.split()[0] or "ETF")
+        asset_class = _first_present(row, "asset_class")
+        subtype = _first_present(row, "subtype", "Theme")
+        exposure = exposure_from_asset_class(str(asset_class) if asset_class is not None else None)
+        if exposure is None:
+            exposure = classify_etf_exposure(name)
         products.append(
             Product(
-                product_id=f"pykrx:{row['Ticker']}",
+                product_id=f"pykrx:{_first_present(row, 'Ticker', 'product_id')}",
                 source="pykrx",
                 provider=provider,
                 name=name,
@@ -46,23 +74,31 @@ def build_products_from_snapshot(snapshot: pd.DataFrame) -> List[Product]:
                 deposit_insurance=False,
                 base_rate=None,
                 max_rate=None,
-                volatility=float(row["Volatility(%)"]) if "Volatility(%)" in row and pd.notna(row["Volatility(%)"]) else None,
+                volatility=float(_first_present(row, "Volatility(%)", "volatility"))
+                if _first_present(row, "Volatility(%)", "volatility") is not None
+                else None,
                 liquidity_tier="high",
-                exposure=classify_etf_exposure(name),
+                exposure=exposure,
                 tags=[
                     tag
                     for tag in [
-                        row.get("Market"),
-                        row.get("Theme"),
+                        _first_present(row, "Market", "market"),
+                        subtype,
+                        str(asset_class) if asset_class is not None else None,
                         f"risk_{category}" if category != "unknown" else None,
                     ]
                     if isinstance(tag, str) and tag
                 ],
                 metadata={
-                    "ticker": row["Ticker"],
+                    "ticker": _first_present(row, "Ticker", "product_id"),
+                    "asset_class": str(asset_class) if asset_class is not None else None,
+                    "subtype": str(subtype) if subtype is not None else None,
                     "risk_level": int(risk_level) if pd.notna(risk_level) else None,
-                    "theme_risk_level": int(row["Theme_Risk_Level"])
-                    if "Theme_Risk_Level" in row and pd.notna(row["Theme_Risk_Level"])
+                    "preference_score": float(_first_present(row, "Preference_Score", "score"))
+                    if _first_present(row, "Preference_Score", "score") is not None
+                    else None,
+                    "theme_risk_level": int(_first_present(row, "Theme_Risk_Level", "theme_risk_level"))
+                    if _first_present(row, "Theme_Risk_Level", "theme_risk_level") is not None
                     else None,
                 },
             )
