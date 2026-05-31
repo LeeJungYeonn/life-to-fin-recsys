@@ -1,7 +1,7 @@
 # life-to-fin-recsys
 A portfolio recommendation system based on demographic features
 
-## Final Pipeline
+## Pipeline
 
 Use these files for the current SupCon pipeline:
 
@@ -28,5 +28,3 @@ The target encoder is an alignment anchor during contrastive/SupCon training, no
 - CatBoost
 - source encoder
 - source encoder + KNN smoothing
-
-Do not use source-vs-target encoder metrics as the main result table; those are only alignment diagnostics.
