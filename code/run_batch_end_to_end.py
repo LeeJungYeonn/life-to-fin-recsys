@@ -8,37 +8,14 @@ import numpy as np
 import pandas as pd
 import torch
 
-from checkpoint_utils import load_dual_encoder_checkpoint
 from portfolio_schema import (
     BUCKET_COLUMNS,
     CATEGORICAL_COLUMNS,
     build_allocation_dataset,
-    derive_risk_label_from_allocation_vector,
-    risky_share_to_bucket,
 )
-from profile_knn import load_anchor_arrays, smooth_with_profile_knn
-from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
-from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
-from recsys.ranker import UserRequest, recommend_products
-from run_end_to_end import _resolve_checkpoint_prefix
+from run_end_to_end import load_end_to_end_resources, run_end_to_end
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _load_products(naverpay_path: Path | None, pykrx_path: Path | None):
-    products = []
-    if naverpay_path is not None:
-        products.extend(load_naver_snapshot(naverpay_path))
-    else:
-        products.extend(load_default_snapshot())
-
-    resolved_pykrx_path = pykrx_path
-    if resolved_pykrx_path is None:
-        resolved_pykrx_path = find_default_snapshot_path()
-    if resolved_pykrx_path is not None and resolved_pykrx_path.exists():
-        products.extend(load_pykrx_snapshot(resolved_pykrx_path))
-    return products
-
 
 def _build_summary_rows(
     df: pd.DataFrame,
@@ -117,80 +94,60 @@ def main() -> None:
     aux_allocations = build_result.allocation_frame.values.astype(np.float32)
     aux_risk = build_result.labels.values.astype(np.int64)
 
-    checkpoint_prefix = _resolve_checkpoint_prefix(args.checkpoint_dir, args.checkpoint_prefix)
-    device = torch.device(args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu"))
-    cardinalities = torch.load(args.processed_dir / "train_cardinalities.pt").tolist()
-
-    source_encoder, _, checkpoint_meta, validation = load_dual_encoder_checkpoint(
+    resources = load_end_to_end_resources(
+        processed_dir=args.processed_dir,
         checkpoint_dir=args.checkpoint_dir,
-        device=device,
-        current_categorical_cols=CATEGORICAL_COLUMNS,
-        current_categorical_cardinalities=cardinalities,
+        checkpoint_prefix=args.checkpoint_prefix,
+        naverpay_path=args.naverpay_path,
+        pykrx_path=args.pykrx_path,
+        device=args.device,
+        anchor_csv=args.anchor_csv,
+        load_knn_anchors=not args.disable_knn_smoothing,
         current_x_cat_tensor=x_cat,
-        current_split=None,
-        strict=False,
-        prefix=checkpoint_prefix,
     )
 
-    predicted_allocations = []
-    predicted_risky_share = []
-    with torch.no_grad():
-        for start in range(0, len(x_cat), args.batch_size):
-            batch_x_cat = x_cat[start : start + args.batch_size].to(device)
-            source_output = source_encoder(batch_x_cat)
-            predicted_allocations.append(source_output.allocation_probs.cpu().numpy())
-            predicted_risky_share.append(source_output.risky_share.squeeze(1).cpu().numpy())
-
-    predicted_allocations_np = np.concatenate(predicted_allocations, axis=0)
-    predicted_risky_share_np = np.concatenate(predicted_risky_share, axis=0)
-
-    if not args.disable_knn_smoothing:
-        x_anchor_cat, anchor_allocs, anchor_risky_shares = load_anchor_arrays(
-            str(args.anchor_csv),
-            cardinalities,
-        )
-        smoothed_allocations = []
-        smoothed_risky = []
-        for idx, allocation in enumerate(predicted_allocations_np):
-            smoothing_result = smooth_with_profile_knn(
-                x_user_cat=x_cat[idx].numpy(),
-                x_anchor_cat=x_anchor_cat,
-                pred_alloc=allocation,
-                anchor_allocs=anchor_allocs,
-                pred_risky_share=float(predicted_risky_share_np[idx]),
-                anchor_risky_shares=anchor_risky_shares,
-                cardinalities=cardinalities,
-                k=args.knn_k,
-                alpha=args.knn_alpha,
+    results = []
+    for row in build_result.categorical_frame.to_dict(orient="records"):
+        profile = {column: int(row[column]) for column in CATEGORICAL_COLUMNS}
+        profile["options"] = {
+            "top_k": args.top_k,
+            "allow_cma": args.allow_cma,
+        }
+        results.append(
+            run_end_to_end(
+                profile,
+                resources=resources,
+                risk_source=args.risk_source,
+                disable_knn_smoothing=args.disable_knn_smoothing,
+                knn_k=args.knn_k,
+                knn_alpha=args.knn_alpha,
             )
-            smoothed_allocations.append(smoothing_result.allocation)
-            smoothed_risky.append(smoothing_result.risky_share)
-        predicted_allocations_np = np.vstack(smoothed_allocations).astype(np.float32)
-        predicted_risky_share_np = np.array(smoothed_risky, dtype=np.float32)
+        )
 
+    predicted_allocations_np = np.array(
+        [
+            [result["predicted_allocation"][bucket] for bucket in BUCKET_COLUMNS]
+            for result in results
+        ],
+        dtype=np.float32,
+    )
+    predicted_risky_share_np = np.array(
+        [result["predicted_risky_share"] for result in results],
+        dtype=np.float32,
+    )
     model_risk_np = np.array(
-        [risky_share_to_bucket(float(value)) for value in predicted_risky_share_np],
+        [result["predicted_risk_level_model"] for result in results],
         dtype=np.int64,
     )
     allocation_risk_np = np.array(
-        [derive_risk_label_from_allocation_vector(allocation) for allocation in predicted_allocations_np],
+        [result["predicted_risk_level_allocation"] for result in results],
         dtype=np.int64,
     )
-    risk_for_recs_np = model_risk_np if args.risk_source == "model" else allocation_risk_np
-
-    products = _load_products(args.naverpay_path, args.pykrx_path)
-    recommendations = []
-    for idx, allocation in enumerate(predicted_allocations_np):
-        recommendation = recommend_products(
-            products,
-            UserRequest(
-                risk_level=int(risk_for_recs_np[idx]),
-                predicted_allocation=allocation,
-                allow_cma=args.allow_cma,
-            ),
-            top_k=args.top_k,
-        )
-        recommendations.append(recommendation)
+    risk_for_recs_np = np.array(
+        [result["risk_level_used_for_recommendation"] for result in results],
+        dtype=np.int64,
+    )
+    recommendations = [result["recommendation"] for result in results]
 
     summary_rows = _build_summary_rows(
         df=df,
@@ -212,10 +169,10 @@ def main() -> None:
 
     details = {
         "input_csv": str(args.input_csv),
-        "checkpoint_prefix": checkpoint_prefix,
+        "checkpoint_prefix": resources.checkpoint_prefix,
         "num_examples": int(len(df)),
-        "validation_warnings": validation["warnings"],
-        "model_config": checkpoint_meta["model_config"],
+        "validation_warnings": resources.validation["warnings"],
+        "model_config": resources.checkpoint_meta["model_config"],
         "summary_metrics": {
             "pred_vs_aux_allocation_mae_mean": float(
                 np.mean(np.abs(predicted_allocations_np - aux_allocations))
