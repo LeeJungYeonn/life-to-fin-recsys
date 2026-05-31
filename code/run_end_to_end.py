@@ -26,10 +26,9 @@ def _resolve_checkpoint_prefix(checkpoint_dir: Path, requested_prefix: str | Non
     if requested_prefix:
         return requested_prefix
 
-    for candidate in ["allocation_best", "profile_to_portfolio_smoke", "smoke_allocation", "best"]:
-        meta_path = checkpoint_dir / f"{candidate}_checkpoint_meta.json"
-        if not meta_path.exists():
-            continue
+    candidate = "allocation_best"
+    meta_path = checkpoint_dir / f"{candidate}_checkpoint_meta.json"
+    if meta_path.exists():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         model_config = meta.get("model_config", {})
         if (
@@ -38,7 +37,7 @@ def _resolve_checkpoint_prefix(checkpoint_dir: Path, requested_prefix: str | Non
         ):
             return candidate
     raise FileNotFoundError(
-        f"No compatible 4-bucket risky-share checkpoint meta found in {checkpoint_dir}. "
+        f"No compatible allocation_best checkpoint meta found in {checkpoint_dir}. "
         "Run code/train_allocation.py first."
     )
 
