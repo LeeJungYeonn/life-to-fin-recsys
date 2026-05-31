@@ -278,7 +278,7 @@ def main() -> None:
         default=None,
         help="Comma-separated label=prefix entries for multiple Source Encoder checkpoints.",
     )
-    parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "checkpoints" / "baseline_comparison")
+    parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "checkpoints" / "baseline_comparison_supcon")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--catboost-iterations", type=int, default=300)
     parser.add_argument("--group-min-count", type=int, default=30)

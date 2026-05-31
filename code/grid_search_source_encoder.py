@@ -1,3 +1,5 @@
+"""Grid search for the final SupCon source encoder pipeline."""
+
 from __future__ import annotations
 
 import argparse
@@ -15,6 +17,10 @@ def _parse_list(value: str, cast):
     return [cast(item.strip()) for item in value.split(",") if item.strip()]
 
 
+def _token(value: object) -> str:
+    return str(value).replace(".", "p").replace("-", "m")
+
+
 def _run(command: list[str], cwd: Path) -> None:
     print(" ".join(command), flush=True)
     subprocess.run(command, cwd=cwd, check=True)
@@ -25,14 +31,13 @@ def _load_json(path: Path) -> dict:
 
 
 def _combo_prefix(base_prefix: str, combo: dict[str, object]) -> str:
-    lr_token = str(combo["learning_rate"]).replace(".", "p").replace("-", "m")
-    dropout_token = str(combo["dropout"]).replace(".", "p")
     return (
         f"{base_prefix}"
+        f"_supcon{_token(combo['supcon_weight'])}"
         f"_emb{combo['embed_dim']}"
         f"_out{combo['output_dim']}"
-        f"_drop{dropout_token}"
-        f"_lr{lr_token}"
+        f"_drop{_token(combo['dropout'])}"
+        f"_lr{_token(combo['learning_rate'])}"
         f"_bs{combo['batch_size']}"
     )
 
@@ -41,12 +46,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints" / "grid_search")
     parser.add_argument("--output-csv", type=Path, default=REPO_ROOT / "checkpoints" / "grid_search" / "grid_results.csv")
-    parser.add_argument("--base-prefix", type=str, default="grid")
-    parser.add_argument("--embed-dims", type=str, default="8,16,32")
-    parser.add_argument("--output-dims", type=str, default="128,256,512")
-    parser.add_argument("--dropouts", type=str, default="0.1,0.2,0.3")
-    parser.add_argument("--learning-rates", type=str, default="0.0005,0.001,0.002")
-    parser.add_argument("--batch-sizes", type=str, default="256,512,1024")
+    parser.add_argument("--base-prefix", type=str, default="supcon_grid")
+    parser.add_argument("--supcon-weights", type=str, default="0.01,0.03,0.05,0.1")
+    parser.add_argument("--embed-dims", type=str, default="32")
+    parser.add_argument("--output-dims", type=str, default="512")
+    parser.add_argument("--dropouts", type=str, default="0.3")
+    parser.add_argument("--learning-rates", type=str, default="0.001")
+    parser.add_argument("--batch-sizes", type=str, default="512")
     parser.add_argument("--epochs", type=int, default=80)
     parser.add_argument("--patience", type=int, default=12)
     parser.add_argument("--seed", type=int, default=42)
@@ -59,6 +65,7 @@ def main() -> None:
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
 
     grid = {
+        "supcon_weight": _parse_list(args.supcon_weights, float),
         "embed_dim": _parse_list(args.embed_dims, int),
         "output_dim": _parse_list(args.output_dims, int),
         "dropout": _parse_list(args.dropouts, float),
@@ -74,6 +81,7 @@ def main() -> None:
 
     fieldnames = [
         "prefix",
+        "supcon_weight",
         "embed_dim",
         "output_dim",
         "dropout",
@@ -93,7 +101,8 @@ def main() -> None:
     for idx, combo in enumerate(combos, start=1):
         prefix = _combo_prefix(args.base_prefix, combo)
         metrics_path = args.checkpoint_dir / f"{prefix}_metrics.json"
-        test_report_path = args.checkpoint_dir / f"{prefix}_test_report.json"
+        test_report_dir = args.checkpoint_dir / f"{prefix}_baseline_comparison"
+        test_report_path = test_report_dir / "baseline_comparison.json"
         print(f"[{idx}/{len(combos)}] {prefix}", flush=True)
 
         if not (args.skip_existing and metrics_path.exists()):
@@ -120,26 +129,36 @@ def main() -> None:
                 str(combo["learning_rate"]),
                 "--batch-size",
                 str(combo["batch_size"]),
+                "--loss-weight-supcon",
+                str(combo["supcon_weight"]),
             ]
             _run(train_cmd, REPO_ROOT)
 
         if not args.no_test_eval and not (args.skip_existing and test_report_path.exists()):
             eval_cmd = [
                 sys.executable,
-                "code/evaluate_allocation.py",
+                "code/evaluate_baselines.py",
                 "--checkpoint-dir",
                 str(args.checkpoint_dir),
                 "--prefix",
                 prefix,
-                "--split",
-                "test",
-                "--report-path",
-                str(test_report_path),
+                "--source-prefixes",
+                f"source_encoder={prefix}",
+                "--output-dir",
+                str(test_report_dir),
             ]
             _run(eval_cmd, REPO_ROOT)
 
         metrics = _load_json(metrics_path)
         test_report = _load_json(test_report_path) if test_report_path.exists() else {}
+        source_result = next(
+            (
+                row
+                for row in test_report.get("results", [])
+                if row.get("model") == "source_encoder"
+            ),
+            {},
+        )
         rows.append(
             {
                 "prefix": prefix,
@@ -149,9 +168,9 @@ def main() -> None:
                 "val_alloc_js": metrics.get("source_alloc_js"),
                 "val_risky_share_mae": metrics.get("source_risky_share_mae"),
                 "val_risk_bucket_macro_f1": metrics.get("source_risk_bucket_macro_f1"),
-                "test_alloc_mae": test_report.get("source_alloc_mae"),
-                "test_risky_share_mae": test_report.get("source_risky_share_mae"),
-                "test_risk_bucket_macro_f1": test_report.get("source_risk_bucket_macro_f1"),
+                "test_alloc_mae": source_result.get("allocation_mae"),
+                "test_risky_share_mae": source_result.get("risky_share_mae"),
+                "test_risk_bucket_macro_f1": source_result.get("risk_macro_f1"),
             }
         )
 

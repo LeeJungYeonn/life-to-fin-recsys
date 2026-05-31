@@ -1,3 +1,5 @@
+"""Train the final SupCon-enabled allocation model."""
+
 from __future__ import annotations
 
 import argparse
@@ -121,19 +123,19 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--epochs", type=int, default=80)
     parser.add_argument("--target-input-dim", type=int, default=None)
-    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--embed-dim", type=int, default=16)
-    parser.add_argument("--output-dim", type=int, default=256)
+    parser.add_argument("--embed-dim", type=int, default=32)
+    parser.add_argument("--output-dim", type=int, default=512)
     parser.add_argument("--projection-dim", type=int, default=64)
-    parser.add_argument("--dropout", type=float, default=0.2)
+    parser.add_argument("--dropout", type=float, default=0.3)
     parser.add_argument("--validation-ratio", type=float, default=0.1)
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--temperature", type=float, default=0.15)
     parser.add_argument("--js-threshold", type=float, default=0.03)
     parser.add_argument("--use-label-positives", action="store_true")
     parser.add_argument("--use-cluster-positives", action="store_true")
-    parser.add_argument("--loss-weight-supcon", type=float, default=0.0)
+    parser.add_argument("--loss-weight-supcon", type=float, default=0.03)
     parser.add_argument("--loss-weight-source-alloc", type=float, default=2.0)
     parser.add_argument("--loss-weight-target-alloc", type=float, default=0.0)
     parser.add_argument("--loss-weight-source-risk", type=float, default=0.2)
