@@ -79,6 +79,8 @@ def recommend_products(products: Iterable[Product], request: UserRequest, top_k:
                 "name": product.name,
                 "score": float(graph_scores.get(product.product_id, 0.0)),
                 "category": product.category,
+                "product_type": product.product_type,
+                "subtype": product.metadata.get("subtype") or product.category,
                 "principal_protection": product.principal_protection,
                 "deposit_insurance": product.deposit_insurance,
             }

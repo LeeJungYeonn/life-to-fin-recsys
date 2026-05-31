@@ -36,7 +36,11 @@
       "bond",
       "pension",
       "equity"
-    ]
+    ],
+    "recommendation_diversity_enabled": false,
+    "recommendation_top_k": 5,
+    "allow_cma": false,
+    "recommendation_diversity_sample_size": null
   },
   "results": [
     {
@@ -87,7 +91,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.8049972963870189,
+      "allocation_diversification_mae": 0.4545297701127508,
+      "allocation_diversification_delta": 0.4488533876045284
     },
     {
       "model": "group_mean_AGECL",
@@ -137,7 +145,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.7787539091210911,
+      "allocation_diversification_mae": 0.432223884411262,
+      "allocation_diversification_delta": 0.42261000033860047
     },
     {
       "model": "group_mean_AGECL_HOUSECL",
@@ -187,7 +199,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.7657640742244501,
+      "allocation_diversification_mae": 0.42446025781022423,
+      "allocation_diversification_delta": 0.4096201654419596
     },
     {
       "model": "group_mean_AGECL_HOUSECL_EDCL",
@@ -237,7 +253,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.7490277853207282,
+      "allocation_diversification_mae": 0.4083494184124601,
+      "allocation_diversification_delta": 0.3928838765382378
     },
     {
       "model": "group_mean_AGECL_HOUSECL_EDCL_OCCAT1",
@@ -287,7 +307,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.744683727208588,
+      "allocation_diversification_mae": 0.4051327720766831,
+      "allocation_diversification_delta": 0.3885398184260974
     },
     {
       "model": "catboost",
@@ -337,7 +361,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.4929844837365302,
+      "allocation_diversification_mae": 0.2754569463896979,
+      "allocation_diversification_delta": 0.13684057495403967
     },
     {
       "model": "source_tuned",
@@ -387,7 +415,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5228740723689047,
+      "allocation_diversification_mae": 0.28118955455764005,
+      "allocation_diversification_delta": 0.1667301635864141
     },
     {
       "model": "source_tuned_knn_k20_alpha0.7",
@@ -437,7 +469,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6043164265402119,
+      "allocation_diversification_mae": 0.3131937639382848,
+      "allocation_diversification_delta": 0.2481725177577213
     },
     {
       "model": "supcon_001",
@@ -487,7 +523,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5447779904489418,
+      "allocation_diversification_mae": 0.2897277178824143,
+      "allocation_diversification_delta": 0.1886340816664513
     },
     {
       "model": "supcon_001_knn_k20_alpha0.7",
@@ -537,7 +577,11 @@
           0,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6181362032747878,
+      "allocation_diversification_mae": 0.32008517275187737,
+      "allocation_diversification_delta": 0.26199229449229716
     },
     {
       "model": "supcon_003",
@@ -587,7 +631,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5230875377404792,
+      "allocation_diversification_mae": 0.2798973962878216,
+      "allocation_diversification_delta": 0.16694362895798867
     },
     {
       "model": "supcon_003_knn_k20_alpha0.7",
@@ -637,7 +685,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6042841279933747,
+      "allocation_diversification_mae": 0.31255890766538746,
+      "allocation_diversification_delta": 0.24814021921088417
     },
     {
       "model": "supcon_005",
@@ -687,7 +739,11 @@
           2,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5321548592343015,
+      "allocation_diversification_mae": 0.2818127347106029,
+      "allocation_diversification_delta": 0.17601095045181095
     },
     {
       "model": "supcon_005_knn_k20_alpha0.7",
@@ -737,7 +793,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6097221270940083,
+      "allocation_diversification_mae": 0.3146051356334719,
+      "allocation_diversification_delta": 0.2535782183115177
     },
     {
       "model": "supcon_010",
@@ -787,7 +847,11 @@
           4,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5239750841416825,
+      "allocation_diversification_mae": 0.27851800391749576,
+      "allocation_diversification_delta": 0.16783117535919198
     },
     {
       "model": "supcon_010_knn_k20_alpha0.7",
@@ -837,7 +901,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6052667575399793,
+      "allocation_diversification_mae": 0.3123571730645056,
+      "allocation_diversification_delta": 0.2491228487574888
     },
     {
       "model": "supcon_final",
@@ -887,7 +955,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.5230875377404792,
+      "allocation_diversification_mae": 0.2798973962878216,
+      "allocation_diversification_delta": 0.16694362895798867
     },
     {
       "model": "supcon_final_knn_k20_alpha0.7",
@@ -937,7 +1009,11 @@
           1,
           0
         ]
-      ]
+      ],
+      "target_allocation_diversification": 0.3561439087824906,
+      "allocation_diversification": 0.6042841279933747,
+      "allocation_diversification_mae": 0.31255890766538746,
+      "allocation_diversification_delta": 0.24814021921088417
     }
   ]
 }

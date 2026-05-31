@@ -137,6 +137,8 @@ def optimize_product_mix(
             "weight": float(weights_by_id[product.product_id]),
             "score": float(scores.get(product.product_id, 0.0)),
             "category": product.category,
+            "product_type": product.product_type,
+            "subtype": product.metadata.get("subtype") or product.category,
             "bucket": bucket_by_id[product.product_id],
             "target_bucket_weight": float(target_by_id[product.product_id]),
         }

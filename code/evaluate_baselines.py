@@ -14,7 +14,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 
 from checkpoint_utils import load_dual_encoder_checkpoint
+from diversification_metrics import allocation_diversification_scores, basket_diversification_scores
 from portfolio_schema import BUCKET_COLUMNS, CATEGORICAL_COLUMNS, risky_share_to_bucket
+from recsys.naverpay_catalog import load_default_snapshot, load_snapshot as load_naver_snapshot
+from recsys.pykrx_catalog import find_default_snapshot_path, load_snapshot as load_pykrx_snapshot
+from recsys.ranker import UserRequest, recommend_products
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,12 +43,97 @@ def _risk_buckets(values: np.ndarray) -> np.ndarray:
     return np.array([risky_share_to_bucket(float(value)) for value in values], dtype=np.int64)
 
 
+def _load_products(naverpay_path: Path | None, pykrx_path: Path | None):
+    products = []
+    if naverpay_path is not None:
+        products.extend(load_naver_snapshot(naverpay_path))
+    else:
+        products.extend(load_default_snapshot())
+
+    resolved_pykrx_path = pykrx_path
+    if resolved_pykrx_path is None:
+        resolved_pykrx_path = find_default_snapshot_path()
+    if resolved_pykrx_path is not None and resolved_pykrx_path.exists():
+        products.extend(load_pykrx_snapshot(resolved_pykrx_path))
+    return products
+
+
+def _allocation_diversification_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    true_scores = allocation_diversification_scores(y_true, BUCKET_COLUMNS)
+    pred_scores = allocation_diversification_scores(y_pred, BUCKET_COLUMNS)
+    return {
+        "target_allocation_diversification": float(np.mean(true_scores)),
+        "allocation_diversification": float(np.mean(pred_scores)),
+        "allocation_diversification_mae": float(np.mean(np.abs(true_scores - pred_scores))),
+        "allocation_diversification_delta": float(np.mean(pred_scores - true_scores)),
+    }
+
+
+def _recommendation_diversification_metrics(
+    y_alloc_pred: np.ndarray,
+    y_risky_pred: np.ndarray,
+    products,
+    *,
+    top_k: int,
+    allow_cma: bool,
+    sample_size: int | None,
+) -> dict[str, float]:
+    possible_categories = {product.category for product in products}
+    possible_subtypes = {product.metadata.get("subtype") or product.category for product in products}
+    collected: list[dict[str, float]] = []
+    if sample_size is not None and sample_size > 0 and sample_size < len(y_alloc_pred):
+        indices = np.linspace(0, len(y_alloc_pred) - 1, num=sample_size, dtype=np.int64)
+        alloc_iter = y_alloc_pred[indices]
+        risky_iter = y_risky_pred[indices]
+    else:
+        alloc_iter = y_alloc_pred
+        risky_iter = y_risky_pred
+    for allocation, risky_share in zip(alloc_iter, risky_iter):
+        recommendation = recommend_products(
+            products,
+            UserRequest(
+                risk_level=risky_share_to_bucket(float(risky_share)),
+                predicted_allocation=allocation,
+                allow_cma=allow_cma,
+            ),
+            top_k=top_k,
+        )
+        collected.append(
+            basket_diversification_scores(
+                recommendation["optimized_basket"],
+                possible_buckets=BUCKET_COLUMNS,
+                possible_categories=possible_categories,
+                possible_subtypes=possible_subtypes,
+            )
+        )
+
+    if not collected:
+        return {
+            "basket_asset_diversification": 0.0,
+            "basket_category_diversification": 0.0,
+            "basket_subtype_diversification": 0.0,
+            "basket_overall_diversification": 0.0,
+        }
+
+    return {
+        "basket_asset_diversification": float(np.mean([item["asset_diversification"] for item in collected])),
+        "basket_category_diversification": float(np.mean([item["category_diversification"] for item in collected])),
+        "basket_subtype_diversification": float(np.mean([item["subtype_diversification"] for item in collected])),
+        "basket_overall_diversification": float(np.mean([item["overall_diversification"] for item in collected])),
+    }
+
+
 def evaluate_predictions(
     name: str,
     y_alloc_true: np.ndarray,
     y_alloc_pred: np.ndarray,
     y_risky_true: np.ndarray,
     y_risky_pred: np.ndarray,
+    *,
+    products=None,
+    recommendation_top_k: int = 5,
+    allow_cma: bool = False,
+    recommendation_diversity_sample_size: int | None = None,
 ) -> dict[str, object]:
     y_alloc_pred = _normalize_alloc(y_alloc_pred)
     y_risky_pred = np.clip(np.asarray(y_risky_pred, dtype=np.float32), 0.0, 1.0)
@@ -55,7 +144,7 @@ def evaluate_predictions(
     if not np.isfinite(risky_corr):
         risky_corr = 0.0
 
-    return {
+    result = {
         "model": name,
         "allocation_mae": float(np.mean(np.abs(y_alloc_true - y_alloc_pred))),
         "allocation_rmse": float(np.sqrt(np.mean((y_alloc_true - y_alloc_pred) ** 2))),
@@ -69,6 +158,19 @@ def evaluate_predictions(
         "risk_weighted_f1": float(f1_score(true_bucket, pred_bucket, average="weighted")),
         "confusion_matrix": confusion_matrix(true_bucket, pred_bucket).tolist(),
     }
+    result.update(_allocation_diversification_metrics(y_alloc_true, y_alloc_pred))
+    if products is not None:
+        result.update(
+            _recommendation_diversification_metrics(
+                y_alloc_pred,
+                y_risky_pred,
+                products,
+                top_k=recommendation_top_k,
+                allow_cma=allow_cma,
+                sample_size=recommendation_diversity_sample_size,
+            )
+        )
+    return result
 
 
 class MeanAllocationBaseline:
@@ -284,11 +386,26 @@ def main() -> None:
     parser.add_argument("--group-min-count", type=int, default=30)
     parser.add_argument("--knn-k", type=int, default=20)
     parser.add_argument("--knn-alpha", type=float, default=0.7)
+    parser.add_argument("--naverpay-path", type=Path, default=None)
+    parser.add_argument("--pykrx-path", type=Path, default=None)
+    parser.add_argument("--recommendation-top-k", type=int, default=5)
+    parser.add_argument("--allow-cma", action="store_true")
+    parser.add_argument("--include-recommendation-diversity", action="store_true")
+    parser.add_argument("--recommendation-diversity-sample-size", type=int, default=200)
     parser.add_argument("--device", type=str, default=None)
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device(args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu"))
+    products = None
+    if args.include_recommendation_diversity:
+        products = _load_products(args.naverpay_path, args.pykrx_path)
+    eval_kwargs = {
+        "products": products,
+        "recommendation_top_k": args.recommendation_top_k,
+        "allow_cma": args.allow_cma,
+        "recommendation_diversity_sample_size": args.recommendation_diversity_sample_size,
+    }
 
     train_x_cat_t, train_alloc, train_risky, _ = _load_split(args.processed_dir, "train")
     test_x_cat_t, test_alloc, test_risky, test_labels_t = _load_split(args.processed_dir, "test")
@@ -301,7 +418,7 @@ def main() -> None:
 
     mean_model = MeanAllocationBaseline().fit(train_alloc, train_risky)
     pred_alloc, pred_risky = mean_model.predict(test_x_cat)
-    rows.append(evaluate_predictions("mean_allocation", test_alloc, pred_alloc, test_risky, pred_risky))
+    rows.append(evaluate_predictions("mean_allocation", test_alloc, pred_alloc, test_risky, pred_risky, **eval_kwargs))
 
     group_specs = [
         ["AGECL"],
@@ -323,6 +440,7 @@ def main() -> None:
                 pred_alloc,
                 test_risky,
                 pred_risky,
+                **eval_kwargs,
             )
         )
 
@@ -345,7 +463,7 @@ def main() -> None:
         train_risky[valid_idx],
     )
     pred_alloc, pred_risky = catboost_model.predict(test_x_cat)
-    rows.append(evaluate_predictions("catboost", test_alloc, pred_alloc, test_risky, pred_risky))
+    rows.append(evaluate_predictions("catboost", test_alloc, pred_alloc, test_risky, pred_risky, **eval_kwargs))
 
     if args.source_prefixes:
         source_prefixes = []
@@ -365,7 +483,7 @@ def main() -> None:
             test_labels_t,
             device,
         )
-        rows.append(evaluate_predictions(source_label, test_alloc, source_alloc, test_risky, source_risky))
+        rows.append(evaluate_predictions(source_label, test_alloc, source_alloc, test_risky, source_risky, **eval_kwargs))
 
         knn_alloc, knn_risky = source_encoder_knn_predictions(
             train_x_cat_t.numpy(),
@@ -385,6 +503,7 @@ def main() -> None:
                 knn_alloc,
                 test_risky,
                 knn_risky,
+                **eval_kwargs,
             )
         )
 
@@ -397,6 +516,12 @@ def main() -> None:
             "knn_k": args.knn_k,
             "knn_alpha": args.knn_alpha,
             "bucket_columns": BUCKET_COLUMNS,
+            "recommendation_diversity_enabled": products is not None,
+            "recommendation_top_k": args.recommendation_top_k,
+            "allow_cma": args.allow_cma,
+            "recommendation_diversity_sample_size": args.recommendation_diversity_sample_size
+            if products is not None
+            else None,
         },
         "results": rows,
     }

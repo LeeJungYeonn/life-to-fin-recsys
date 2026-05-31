@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 
 from checkpoint_utils import load_dual_encoder_checkpoint
+from diversification_metrics import basket_diversification_scores
 from portfolio_schema import (
     BUCKET_COLUMNS,
     CATEGORICAL_COLUMNS,
@@ -51,6 +52,8 @@ def _build_summary_rows(
     aux_risk: np.ndarray,
     quality: pd.DataFrame,
     recommendations: list[dict[str, object]],
+    possible_categories: set[object],
+    possible_subtypes: set[object],
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     alloc_mae = np.mean(np.abs(predicted_allocations - aux_allocations), axis=1)
@@ -58,6 +61,12 @@ def _build_summary_rows(
     for idx, recommendation in enumerate(recommendations):
         top_ranked = recommendation["ranked_products"][0] if recommendation["ranked_products"] else {}
         top_basket = recommendation["optimized_basket"][0] if recommendation["optimized_basket"] else {}
+        diversity = basket_diversification_scores(
+            recommendation["optimized_basket"],
+            possible_buckets=BUCKET_COLUMNS,
+            possible_categories=possible_categories,
+            possible_subtypes=possible_subtypes,
+        )
         row = {
             "CASEID": int(df.iloc[idx]["CASEID"]) if "CASEID" in df.columns else idx,
             "predicted_risk_level_model": int(model_risk[idx]),
@@ -73,6 +82,10 @@ def _build_summary_rows(
             "top_ranked_product_name": top_ranked.get("name"),
             "top_basket_product_id": top_basket.get("product_id"),
             "top_basket_weight": top_basket.get("weight"),
+            "basket_asset_diversification": diversity["asset_diversification"],
+            "basket_category_diversification": diversity["category_diversification"],
+            "basket_subtype_diversification": diversity["subtype_diversification"],
+            "basket_overall_diversification": diversity["overall_diversification"],
         }
         for bucket_idx, bucket in enumerate(BUCKET_COLUMNS):
             row[f"pred_{bucket}"] = float(predicted_allocations[idx, bucket_idx])
@@ -179,6 +192,8 @@ def main() -> None:
     risk_for_recs_np = model_risk_np if args.risk_source == "model" else allocation_risk_np
 
     products = _load_products(args.naverpay_path, args.pykrx_path)
+    possible_categories = {product.category for product in products}
+    possible_subtypes = {product.metadata.get("subtype") or product.category for product in products}
     recommendations = []
     for idx, allocation in enumerate(predicted_allocations_np):
         recommendation = recommend_products(
@@ -203,12 +218,15 @@ def main() -> None:
         aux_risk=aux_risk,
         quality=build_result.quality_frame,
         recommendations=recommendations,
+        possible_categories=possible_categories,
+        possible_subtypes=possible_subtypes,
     )
 
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
 
     pd.DataFrame(summary_rows).to_csv(args.output_csv, index=False)
+    summary_frame = pd.DataFrame(summary_rows)
 
     details = {
         "input_csv": str(args.input_csv),
@@ -223,6 +241,10 @@ def main() -> None:
             "pred_vs_aux_model_risk_match_rate": float(np.mean(model_risk_np == aux_risk)),
             "pred_vs_aux_allocation_risk_match_rate": float(np.mean(allocation_risk_np == aux_risk)),
             "overlap_rescaled_share": float(build_result.quality_frame["rescaled_overlap_flag"].mean()),
+            "basket_asset_diversification_mean": float(summary_frame["basket_asset_diversification"].mean()),
+            "basket_category_diversification_mean": float(summary_frame["basket_category_diversification"].mean()),
+            "basket_subtype_diversification_mean": float(summary_frame["basket_subtype_diversification"].mean()),
+            "basket_overall_diversification_mean": float(summary_frame["basket_overall_diversification"].mean()),
         },
         "risk_source_used_for_recommendation": args.risk_source,
         "knn_smoothing": {
