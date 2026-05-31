@@ -10,7 +10,7 @@ Use these files for the current SupCon pipeline:
 - `code/evaluate_baselines.py`: compares the trained source encoder against practical baselines.
 - `code/run_end_to_end.py`: runs inference/recommendation with the current SupCon best checkpoint.
 
-Current selected checkpoint: `checkpoints/supcon_best_*`
+Current selected checkpoint: `checkpoints/allocation_best_*`
 
 Current result table: `checkpoints/baseline_comparison_supcon/baseline_comparison.csv`
 
