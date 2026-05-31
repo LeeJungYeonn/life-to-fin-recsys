@@ -8,16 +8,24 @@ code/__pycache__/
 # Jupyter cache
 .ipynb_checkpoints/
 
+# Legacy notebook pipeline
+code/train_contrastive.ipynb
+
 # Smoke / tmp checkpoints
 checkpoints/smoke_*
 checkpoints/tmp_*
 checkpoints/batch_smoke_*
+checkpoints/batch_end_to_end_*
 
 # Legacy checkpoints (kept local only)
 checkpoints/best_*
 checkpoints/profile_to_portfolio_smoke_*
 checkpoints/unused_*
 checkpoints/obsolete_*
+checkpoints/*_test_report.json
+checkpoints/**/*_test_report.json
+checkpoints/baseline_comparison/
+checkpoints/baseline_comparison_tuned/
 
 # Hyperparameter search artifacts
 checkpoints/grid_search/
