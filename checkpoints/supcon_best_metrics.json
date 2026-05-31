@@ -1,0 +1,15 @@
+{
+  "epoch": 5,
+  "total": 0.8038471713662148,
+  "supcon": 6.644092082977295,
+  "source_alloc": 0.29844745124379796,
+  "target_alloc": 0.0,
+  "source_risk": 0.03814754790316025,
+  "target_risk": 0.0,
+  "coral": 0.0,
+  "source_alloc_mae": 0.1708931067421254,
+  "source_alloc_js": 0.1298984585049295,
+  "source_risky_share_mae": 0.2246711105108261,
+  "source_risk_bucket_acc": 0.3111279333838001,
+  "source_risk_bucket_macro_f1": 0.20910086498712274
+}
