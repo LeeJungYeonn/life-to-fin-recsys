@@ -13,6 +13,12 @@ checkpoints/smoke_*
 checkpoints/tmp_*
 checkpoints/batch_smoke_*
 
+# Legacy checkpoints (kept local only)
+checkpoints/best_*
+checkpoints/profile_to_portfolio_smoke_*
+checkpoints/unused_*
+checkpoints/obsolete_*
+
 # Hyperparameter search artifacts
 checkpoints/grid_search/
 checkpoints/supcon_grid*/
