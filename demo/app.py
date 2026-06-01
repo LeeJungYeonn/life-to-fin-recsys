@@ -9,7 +9,10 @@ import streamlit as st
 
 
 DEMO_DIR = Path(__file__).resolve().parent
-RECSYS_DIR = DEMO_DIR.parent / "life-to-fin-recsys"
+if (DEMO_DIR.parent / "code").exists():
+    RECSYS_DIR = DEMO_DIR.parent
+else:
+    RECSYS_DIR = DEMO_DIR.parent / "life-to-fin-recsys"
 CODE_DIR = RECSYS_DIR / "code"
 
 if str(CODE_DIR) not in sys.path:
@@ -43,6 +46,123 @@ def load_test_profiles():
 
 
 test_profiles = load_test_profiles()
+
+
+def label_from_options(options, value):
+    for label, option_value in options.items():
+        if option_value == value:
+            return label
+    return str(value)
+
+
+def savings_reason_label(user_profile, savres_opts):
+    for label, column in savres_opts.items():
+        if int(user_profile.get(column, 0)) == 1:
+            return label
+    return "Not specified"
+
+
+def describe_risk_level(display_risk_level):
+    descriptions = {
+        1: "very conservative",
+        2: "conservative",
+        3: "moderate",
+        4: "aggressive",
+        5: "very aggressive",
+    }
+    return descriptions.get(int(display_risk_level), "model-selected")
+
+
+def describe_allocation_mix(weights):
+    cash = weights.get("cash", 0.0)
+    bond = weights.get("bond", 0.0)
+    pension = weights.get("pension", 0.0)
+    equity = weights.get("equity", 0.0)
+
+    notes = []
+    if cash >= 50.0:
+        notes.append(
+            "The portfolio is anchored in liquidity, which can fit users whose profile implies a preference for stability or near-term flexibility."
+        )
+    elif cash >= 25.0:
+        notes.append(
+            "A meaningful liquidity sleeve is retained, while the rest of the portfolio is spread across longer-term assets."
+        )
+    else:
+        notes.append(
+            "Liquidity is kept relatively lean, so more of the recommendation is allocated to investment-oriented buckets."
+        )
+
+    if pension >= 20.0:
+        notes.append(
+            "The pension bucket is material, suggesting that long-horizon retirement exposure is important for this profile."
+        )
+    if bond >= 15.0:
+        notes.append("Bond exposure adds a stabilizing layer between cash and equity risk.")
+    if equity >= 25.0:
+        notes.append(
+            "Equity exposure is a major growth driver, so short-term market movement may matter more for this recommendation."
+        )
+    elif equity <= 10.0:
+        notes.append(
+            "Equity exposure is intentionally limited, keeping the growth component modest relative to safer buckets."
+        )
+
+    return notes
+
+
+def build_profile_labels(user_profile, option_maps):
+    return {
+        "age": label_from_options(option_maps["agecl"], user_profile["AGECL"]),
+        "life_cycle": label_from_options(option_maps["lifecl"], user_profile["LIFECL"]),
+        "family": label_from_options(option_maps["famstruct"], user_profile["FAMSTRUCT"]),
+        "labor": label_from_options(option_maps["lf"], user_profile["LF"]),
+        "occupation": label_from_options(option_maps["occat2"], user_profile["OCCAT2"]),
+        "housing": label_from_options(option_maps["housecl"], user_profile["HOUSECL"]),
+        "saving_behavior": label_from_options(option_maps["wsaved"], user_profile["WSAVED"]),
+        "expense_level": label_from_options(option_maps["expenshilo"], user_profile["EXPENSHILO"]),
+        "savings_reason": savings_reason_label(user_profile, option_maps["savres"]),
+        "kids": int(user_profile.get("KIDS", 0)),
+    }
+
+
+def generate_personalized_report(profile_labels, weights, display_risk_level, caseid=None):
+    risk_description = describe_risk_level(display_risk_level)
+    top_allocations = sorted(weights.items(), key=lambda item: item[1], reverse=True)
+    top_allocation_text = ", ".join(
+        f"{bucket} {weight:.1f}%" for bucket, weight in top_allocations if weight > 0.0
+    )
+    source_text = f"CASEID {int(caseid)}" if caseid is not None else "the survey responses"
+
+    report_lines = [
+        "### Personalized Report",
+        (
+            f"Based on {source_text}, this user appears to be in the "
+            f"**{profile_labels['age']}** age group with a **{profile_labels['life_cycle']}** "
+            f"life-cycle profile. The household context is **{profile_labels['family']}**, "
+            f"with **{profile_labels['kids']}** dependent children."
+        ),
+        (
+            f"The financial behavior signals are **{profile_labels['saving_behavior']}**, "
+            f"**{profile_labels['expense_level']}** expenses, and a primary savings goal of "
+            f"**{profile_labels['savings_reason']}**. Work and housing signals are "
+            f"**{profile_labels['labor']}**, **{profile_labels['occupation']}**, and "
+            f"**{profile_labels['housing']}**."
+        ),
+        (
+            f"The model selected risk label **{display_risk_level}**, interpreted here as "
+            f"**{risk_description}**. The estimated allocation is concentrated in "
+            f"**{top_allocation_text}**."
+        ),
+        "**Allocation rationale**",
+    ]
+
+    report_lines.extend(f"- {note}" for note in describe_allocation_mix(weights))
+    report_lines.append(
+        "⚠️ This report is generated from the survey profile and model allocation only; it is a demo explanation, not financial advice."
+    )
+    return "\n\n".join(report_lines)
+
 
 st.set_page_config(page_title="Life-to-Fin RecSys Demo", page_icon="L", layout="wide")
 st.title("Life-to-Fin: Lifestyle-Based Portfolio Recommendation")
@@ -254,6 +374,19 @@ if submitted:
             test_row = test_profiles[test_profiles["CASEID"] == selected_caseid].iloc[0]
             user_profile = {column: int(test_row[column]) for column in CATEGORICAL_COLUMNS}
 
+        option_maps = {
+            "agecl": agecl_opts,
+            "lifecl": lifecl_opts,
+            "famstruct": famstruct_opts,
+            "lf": lf_opts,
+            "occat2": occat2_opts,
+            "housecl": housecl_opts,
+            "wsaved": wsaved_opts,
+            "expenshilo": expenshilo_opts,
+            "savres": savres_opts,
+        }
+        profile_labels = build_profile_labels(user_profile, option_maps)
+
         result = run_end_to_end(
             user_profile,
             resources=end_to_end_resources,
@@ -269,7 +402,7 @@ if submitted:
 
         time.sleep(0.5)
 
-    col_res1, col_res2 = st.columns([1, 1])
+    col_res1, col_res2 = st.columns([1.2, 0.8])
 
     with col_res1:
         st.subheader("Estimated Asset Allocation")
@@ -284,23 +417,12 @@ if submitted:
             color_discrete_sequence=px.colors.sequential.Teal,
         )
         fig.update_traces(textposition="inside", textinfo="percent+label")
+        fig.update_layout(height=520)
         st.plotly_chart(fig, width="stretch")
 
     with col_res2:
         st.subheader("Risk Profile")
-        st.info(f"Risk label used for recommendation: **{display_risk_level}**")
-        payload = {
-            "checkpoint_prefix": result["checkpoint_prefix"],
-            "risk_source": result["risk_source_used_for_recommendation"],
-            "risk_level_used_for_recommendation_0_based": direct_risk_level,
-            "risk_label_display_1_based": display_risk_level,
-            "predicted_risk_level_model": result["predicted_risk_level_model"],
-            "predicted_risk_level_allocation": result["predicted_risk_level_allocation"],
-            "knn_smoothing": result["knn_smoothing"]["enabled"],
-        }
-        if use_exact_caseid and selected_caseid is not None:
-            payload["CASEID"] = int(selected_caseid)
-        st.json(payload)
+        st.info(f"Predicted Risk Label: **{display_risk_level}**")
 
     st.subheader("Recommended Financial Products")
 
@@ -352,3 +474,13 @@ if submitted:
         st.dataframe(df_recs, width="stretch")
     else:
         st.warning("No recommendations were returned.")
+
+    report_caseid = selected_caseid if use_exact_caseid and selected_caseid is not None else None
+    st.markdown(
+        generate_personalized_report(
+            profile_labels,
+            weights,
+            display_risk_level,
+            caseid=report_caseid,
+        )
+    )
