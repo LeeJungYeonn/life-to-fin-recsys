@@ -138,6 +138,73 @@ def describe_allocation_mix(weights):
     return notes
 
 
+def format_allocation(weights):
+    allocations = sorted(weights.items(), key=lambda item: item[1], reverse=True)
+    return ", ".join(
+        f"{bucket} {weight:.1f}%" for bucket, weight in allocations if weight > 0.0
+    )
+
+
+def summarize_profile_signals(profile_labels):
+    stability = [
+        f"labor-force status: {profile_labels['labor']}",
+        f"housing: {profile_labels['housing']}",
+        f"saving behavior: {profile_labels['saving_behavior']}",
+    ]
+    liquidity = [
+        f"dependent children: {profile_labels['kids']}",
+        f"family structure: {profile_labels['family']}",
+        f"expense level: {profile_labels['expense_level']}",
+        f"savings goal: {profile_labels['savings_reason']}",
+    ]
+    horizon = [
+        f"age group: {profile_labels['age']}",
+        f"life cycle: {profile_labels['life_cycle']}",
+    ]
+
+    if "Retirement" in profile_labels["savings_reason"]:
+        horizon.append("savings goal includes retirement")
+    if "Investment" in profile_labels["savings_reason"]:
+        horizon.append("savings goal includes investment")
+
+    return {
+        "Stability signals": stability,
+        "Liquidity needs": liquidity,
+        "Long-term horizon signals": horizon,
+    }
+
+
+def describe_product_buckets(recommendation):
+    items = recommendation.get("optimized_basket", recommendation.get("ranked_products", []))
+    buckets = []
+    for item in items:
+        bucket = str(item.get("bucket", item.get("category", ""))).lower()
+        if bucket and bucket not in buckets:
+            buckets.append(bucket)
+
+    descriptions = {
+        "cash": "Cash-oriented products are included to preserve liquidity and reduce short-term portfolio movement.",
+        "bond": "Bond products can be interpreted as a volatility buffer between cash and growth assets.",
+        "pension": "Pension products support long-horizon retirement exposure within the predicted allocation.",
+        "equity": "Equity or ETF products provide growth exposure while staying within the selected risk label.",
+    }
+    return [descriptions[bucket] for bucket in buckets if bucket in descriptions]
+
+
+def anchor_allocation_text(knn_smoothing):
+    if not knn_smoothing or not knn_smoothing.get("enabled"):
+        return None
+
+    anchor_allocation = knn_smoothing.get("anchor_allocation")
+    if not anchor_allocation:
+        return None
+
+    anchor_weights = {
+        bucket: float(value) * 100.0 for bucket, value in anchor_allocation.items()
+    }
+    return format_allocation(anchor_weights)
+
+
 def build_profile_labels(user_profile, option_maps):
     return {
         "age": label_from_options(option_maps["agecl"], user_profile["AGECL"]),
@@ -153,16 +220,24 @@ def build_profile_labels(user_profile, option_maps):
     }
 
 
-def generate_personalized_report(profile_labels, weights, display_risk_level, caseid=None):
+def generate_personalized_report(
+    profile_labels,
+    weights,
+    display_risk_level,
+    recommendation,
+    knn_smoothing=None,
+    caseid=None,
+):
     risk_description = describe_risk_level(display_risk_level)
-    top_allocations = sorted(weights.items(), key=lambda item: item[1], reverse=True)
-    top_allocation_text = ", ".join(
-        f"{bucket} {weight:.1f}%" for bucket, weight in top_allocations if weight > 0.0
-    )
+    allocation_text = format_allocation(weights)
     source_text = f"CASEID {int(caseid)}" if caseid is not None else "the survey responses"
+    profile_signals = summarize_profile_signals(profile_labels)
+    product_notes = describe_product_buckets(recommendation)
+    anchor_text = anchor_allocation_text(knn_smoothing)
 
     report_lines = [
         "### Personalized Report",
+        "**User profile summary**",
         (
             f"Based on {source_text}, this user appears to be in the "
             f"**{profile_labels['age']}** age group with a **{profile_labels['life_cycle']}** "
@@ -176,25 +251,41 @@ def generate_personalized_report(profile_labels, weights, display_risk_level, ca
             f"**{profile_labels['labor']}**, **{profile_labels['occupation']}**, and "
             f"**{profile_labels['housing']}**."
         ),
+        "**Model output**",
         (
-            f"The model selected risk label **{display_risk_level}**, interpreted here as "
-            f"**{risk_description}**. The estimated allocation is concentrated in "
-            f"**{top_allocation_text}**."
+            f"- Predicted risk label: **{display_risk_level}/5** "
+            f"({risk_description})\n"
+            f"- Predicted allocation: **{allocation_text}**"
         ),
-        "**Allocation rationale**",
+        "**Evidence from input profile**",
     ]
 
+    for title, signals in profile_signals.items():
+        report_lines.append(f"- {title}: {', '.join(signals)}")
+
+    report_lines.append("**Why this allocation?**")
     report_lines.extend(f"- {note}" for note in describe_allocation_mix(weights))
+
+    if anchor_text:
+        report_lines.append(
+            f"- Similar lifestyle profiles from the anchor set averaged **{anchor_text}**, which provides neighborhood-based context for this recommendation."
+        )
+
+    if product_notes:
+        report_lines.append("**Why these products?**")
+        report_lines.extend(f"- {note}" for note in product_notes)
+
     report_lines.append(
-        "Note: This report is generated from the survey profile and model allocation only; it is a demo explanation, not financial advice."
+        "⚠️ Evidence note: This is a post-hoc interpretive report generated from model outputs, user profile signals, and product bucket metadata. It is not a direct explanation of the model's internal reasoning and is not financial advice."
     )
     return "\n\n".join(report_lines)
 
 
 st.set_page_config(page_title="Life-to-Fin RecSys Demo", page_icon="L", layout="wide")
-st.title("Life-to-Fin: Lifestyle-Based Portfolio Recommendation")
+st.title("Lifestyle-to-Finance")
+st.subheader("Demographic Data-Based Portfolio Recommendation")
 st.markdown(
-    "**A zero-shot recommendation demo for thin-file users without transaction history.**"
+    "**A zero-shot recommendation for thin-file users without transaction history.**"
 )
 st.divider()
 
@@ -508,6 +599,8 @@ if submitted:
             profile_labels,
             weights,
             display_risk_level,
+            recommendation,
+            knn_smoothing=result["knn_smoothing"],
             caseid=report_caseid,
         )
     )
