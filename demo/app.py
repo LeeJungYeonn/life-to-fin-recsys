@@ -62,6 +62,33 @@ def savings_reason_label(user_profile, savres_opts):
     return "Not specified"
 
 
+def derive_life_family_fields(agecl, married, kids, lf):
+    has_kids = int(kids) > 0
+    is_married = int(married) == 1
+    is_under_55 = int(agecl) <= 3
+
+    if is_married:
+        famstruct = 4 if has_kids else 5
+    elif has_kids:
+        famstruct = 1
+    else:
+        famstruct = 2 if is_under_55 else 3
+
+    if is_under_55:
+        if is_married and has_kids:
+            lifecl = 3
+        elif is_married:
+            lifecl = 2
+        elif has_kids:
+            lifecl = 4
+        else:
+            lifecl = 1
+    else:
+        lifecl = 5 if int(lf) == 1 else 6
+
+    return lifecl, famstruct
+
+
 def describe_risk_level(display_risk_level):
     descriptions = {
         1: "very conservative",
@@ -159,7 +186,7 @@ def generate_personalized_report(profile_labels, weights, display_risk_level, ca
 
     report_lines.extend(f"- {note}" for note in describe_allocation_mix(weights))
     report_lines.append(
-        "⚠️ This report is generated from the survey profile and model allocation only; it is a demo explanation, not financial advice."
+        "Note: This report is generated from the survey profile and model allocation only; it is a demo explanation, not financial advice."
     )
     return "\n\n".join(report_lines)
 
@@ -192,50 +219,45 @@ tab1, tab2, tab3 = st.tabs(
 with st.form("survey_form"):
     with tab1:
         st.subheader("Demographics & Family Structure")
-        col1, col2 = st.columns(2)
-        with col1:
-            agecl_opts = {
-                "<35": 1,
-                "35-44": 2,
-                "45-54": 3,
-                "55-64": 4,
-                "65-74": 5,
-                ">=75": 6,
-            }
-            agecl_ui = st.selectbox("Age group (AGECL)", list(agecl_opts.keys()))
+        famstruct_opts = {
+            "Unmarried/no partner + children": 1,
+            "Unmarried/no partner + no children + under 55": 2,
+            "Unmarried/no partner + no children + 55 or older": 3,
+            "Married/partner + children": 4,
+            "Married/partner + no children": 5,
+        }
 
-            married_opts = {
-                "Married / living with partner": 1,
-                "Not married / not living with partner": 2,
-            }
-            married_ui = st.radio("Marital status (MARRIED)", list(married_opts.keys()))
+        lifecl_opts = {
+            "Under 55 + unmarried/no partner + no children": 1,
+            "Under 55 + married/partner + no children": 2,
+            "Under 55 + married/partner + children": 3,
+            "Under 55 + unmarried/no partner + children": 4,
+            "55 or older + working": 5,
+            "55 or older + not working": 6,
+        }
+        
+        agecl_opts = {
+            "<35": 1,
+            "35-44": 2,
+            "45-54": 3,
+            "55-64": 4,
+            "65-74": 5,
+            ">=75": 6,
+        }
+        agecl_ui = st.selectbox("Age group (AGECL)", list(agecl_opts.keys()))
 
-            kids_ui = st.number_input(
-                "Number of dependent children (KIDS)",
-                min_value=0,
-                max_value=20,
-                value=0,
-            )
+        married_opts = {
+            "Married / living with partner": 1,
+            "Not married / not living with partner": 2,
+        }
+        married_ui = st.radio("Marital status (MARRIED)", list(married_opts.keys()))
 
-        with col2:
-            famstruct_opts = {
-                "Unmarried/no partner + children": 1,
-                "Unmarried/no partner + no children + under 55": 2,
-                "Unmarried/no partner + no children + 55 or older": 3,
-                "Married/partner + children": 4,
-                "Married/partner + no children": 5,
-            }
-            famstruct_ui = st.selectbox("Family structure (FAMSTRUCT)", list(famstruct_opts.keys()))
-
-            lifecl_opts = {
-                "Under 55 + unmarried/no partner + no children": 1,
-                "Under 55 + married/partner + no children": 2,
-                "Under 55 + married/partner + children": 3,
-                "Under 55 + unmarried/no partner + children": 4,
-                "55 or older + working": 5,
-                "55 or older + not working": 6,
-            }
-            lifecl_ui = st.selectbox("Life cycle (LIFECL)", list(lifecl_opts.keys()))
+        kids_ui = st.number_input(
+            "Number of dependent children (KIDS)",
+            min_value=0,
+            max_value=20,
+            value=0,
+        )
 
     with tab2:
         st.subheader("Education, Occupation & Housing")
@@ -307,39 +329,37 @@ with st.form("survey_form"):
 
     with tab3:
         st.subheader("Expenses & Savings Goals")
-        col5, col6 = st.columns(2)
-        with col5:
-            wsaved_opts = {
-                "Spent less than income": 3,
-                "Spent about equal to income": 2,
-                "Spent more than income": 1,
-            }
-            wsaved_ui = st.radio("Past-year spending/saving (WSAVED)", list(wsaved_opts.keys()))
 
-            expenshilo_opts = {
-                "Normal": 3,
-                "Unusually high": 1,
-                "Unusually low": 2,
-            }
-            expenshilo_ui = st.selectbox("Expense level (EXPENSHILO)", list(expenshilo_opts.keys()))
+        wsaved_opts = {
+            "Spent less than income": 3,
+            "Spent about equal to income": 2,
+            "Spent more than income": 1,
+        }
+        wsaved_ui = st.radio("Past-year spending/saving (WSAVED)", list(wsaved_opts.keys()))
 
-        with col6:
-            savres_opts = {
-                "Cannot save": "SAVRES1",
-                "Education": "SAVRES2",
-                "Family": "SAVRES3",
-                "Home": "SAVRES4",
-                "Purchases": "SAVRES5",
-                "Retirement": "SAVRES6",
-                "Liquidity / the future": "SAVRES7",
-                "Investment": "SAVRES8",
-                "No particular reason": "SAVRES9",
-            }
-            savres_ui = st.selectbox(
-                "Primary savings reason (SAVRES 1-9)",
-                list(savres_opts.keys()),
-                index=6,
-            )
+        expenshilo_opts = {
+            "Normal": 3,
+            "Unusually high": 1,
+            "Unusually low": 2,
+        }
+        expenshilo_ui = st.selectbox("Expense level (EXPENSHILO)", list(expenshilo_opts.keys()))
+
+        savres_opts = {
+            "Cannot save": "SAVRES1",
+            "Education": "SAVRES2",
+            "Family": "SAVRES3",
+            "Home": "SAVRES4",
+            "Purchases": "SAVRES5",
+            "Retirement": "SAVRES6",
+            "Liquidity / the future": "SAVRES7",
+            "Investment": "SAVRES8",
+            "No particular reason": "SAVRES9",
+        }
+        savres_ui = st.selectbox(
+            "Primary savings reason (SAVRES 1-9)",
+            list(savres_opts.keys()),
+            index=6,
+        )
 
     submitted = st.form_submit_button("Recommend Portfolio")
 
@@ -357,8 +377,6 @@ if submitted:
             "EDCL": edcl_opts[edcl_ui],
             "EDUC": educ_opts[educ_ui],
             "AGECL": agecl_opts[agecl_ui],
-            "LIFECL": lifecl_opts[lifecl_ui],
-            "FAMSTRUCT": famstruct_opts[famstruct_ui],
             "KIDS": kids_ui,
             "MARRIED": married_opts[married_ui],
             "EXPENSHILO": expenshilo_opts[expenshilo_ui],
@@ -373,6 +391,15 @@ if submitted:
         if use_exact_caseid and selected_caseid is not None and not test_profiles.empty:
             test_row = test_profiles[test_profiles["CASEID"] == selected_caseid].iloc[0]
             user_profile = {column: int(test_row[column]) for column in CATEGORICAL_COLUMNS}
+
+        derived_lifecl, derived_famstruct = derive_life_family_fields(
+            user_profile["AGECL"],
+            user_profile["MARRIED"],
+            user_profile["KIDS"],
+            user_profile["LF"],
+        )
+        user_profile["LIFECL"] = derived_lifecl
+        user_profile["FAMSTRUCT"] = derived_famstruct
 
         option_maps = {
             "agecl": agecl_opts,
