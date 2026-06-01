@@ -11,6 +11,7 @@ from run_end_to_end import load_end_to_end_resources, run_end_to_end
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASE_IDS = [165546, 176876, 190931, 236386, 222331]
+RISK_LABELS_ZERO_BASED = [0, 1, 2, 3, 4]
 
 
 def _format_pct(value: float) -> str:
@@ -43,6 +44,36 @@ def _basket_summary(basket: list[dict[str, object]]) -> str:
     return "; ".join(parts)
 
 
+def _select_case_ids_from_summary(
+    summary_path: Path,
+    *,
+    risk_column: str,
+    allow_missing: bool,
+) -> tuple[list[int], list[int]]:
+    summary = pd.read_csv(summary_path)
+    missing_columns = [column for column in ["CASEID", risk_column, "aux_allocation_mae"] if column not in summary.columns]
+    if missing_columns:
+        raise ValueError(f"Missing column(s) in {summary_path}: {missing_columns}")
+
+    selected = []
+    missing_labels = []
+    for label in RISK_LABELS_ZERO_BASED:
+        candidates = summary[summary[risk_column].astype(int) == label]
+        if candidates.empty:
+            missing_labels.append(label + 1)
+            continue
+        best = candidates.sort_values("aux_allocation_mae").iloc[0]
+        selected.append(int(best["CASEID"]))
+
+    if missing_labels and not allow_missing:
+        raise ValueError(
+            "No case(s) found for displayed predicted risk label(s) "
+            f"{missing_labels} in {summary_path}. "
+            "Use --allow-missing-risk-labels to export available labels only."
+        )
+    return selected, missing_labels
+
+
 def _markdown_case(case: dict[str, object]) -> str:
     input_items = case["input_features"]
     predicted_allocation = case["predicted_allocation"]
@@ -50,7 +81,7 @@ def _markdown_case(case: dict[str, object]) -> str:
     basket = case["recommended_products"]
 
     lines = [
-        f"## CASEID {case['CASEID']} - Risk Label {case['true_risk_label_1_to_5']}",
+        f"## CASEID {case['CASEID']} - Predicted Risk Label {case['predicted_risk_label_1_to_5']}",
         "",
         "| Item | Value |",
         "| --- | --- |",
@@ -109,7 +140,19 @@ def _markdown_case(case: dict[str, object]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-csv", type=Path, default=REPO_ROOT / "dataset" / "test.csv")
-    parser.add_argument("--case-ids", type=int, nargs="+", default=DEFAULT_CASE_IDS)
+    parser.add_argument("--case-ids", type=int, nargs="+", default=None)
+    parser.add_argument(
+        "--sample-by",
+        choices=["predicted-risk", "true-risk", "case-ids"],
+        default="predicted-risk",
+        help="Default uses checkpoints/batch_end_to_end_summary.csv to select one CASEID per predicted risk label.",
+    )
+    parser.add_argument(
+        "--selection-summary",
+        type=Path,
+        default=REPO_ROOT / "checkpoints" / "batch_end_to_end_summary.csv",
+    )
+    parser.add_argument("--allow-missing-risk-labels", action="store_true")
     parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
     parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
     parser.add_argument("--checkpoint-prefix", type=str, default="allocation_best")
@@ -136,15 +179,34 @@ def main() -> None:
     args = parser.parse_args()
 
     df = pd.read_csv(args.input_csv)
-    missing = [case_id for case_id in args.case_ids if case_id not in set(df["CASEID"].astype(int))]
+    if args.case_ids is not None:
+        case_ids = args.case_ids
+        missing_display_labels = []
+    elif args.sample_by == "predicted-risk":
+        case_ids, missing_display_labels = _select_case_ids_from_summary(
+            args.selection_summary,
+            risk_column="predicted_risk_level_model",
+            allow_missing=args.allow_missing_risk_labels,
+        )
+    elif args.sample_by == "true-risk":
+        case_ids, missing_display_labels = _select_case_ids_from_summary(
+            args.selection_summary,
+            risk_column="aux_risk_label",
+            allow_missing=args.allow_missing_risk_labels,
+        )
+    else:
+        case_ids = DEFAULT_CASE_IDS
+        missing_display_labels = []
+
+    missing = [case_id for case_id in case_ids if case_id not in set(df["CASEID"].astype(int))]
     if missing:
         raise ValueError(f"CASEID(s) not found in {args.input_csv}: {missing}")
 
     selected = (
-        df[df["CASEID"].astype(int).isin(args.case_ids)]
+        df[df["CASEID"].astype(int).isin(case_ids)]
         .copy()
         .set_index("CASEID")
-        .loc[args.case_ids]
+        .loc[case_ids]
         .reset_index()
     )
     build_result = build_allocation_dataset(selected)
@@ -222,11 +284,23 @@ def main() -> None:
         "",
         f"- input_csv: `{args.input_csv}`",
         f"- checkpoint_prefix: `{resources.checkpoint_prefix}`",
+        f"- sample_by: `{args.sample_by}`",
+        f"- selected_case_ids: `{case_ids}`",
         f"- risk_source: `{args.risk_source}`",
         f"- knn_smoothing: `{args.enable_knn_smoothing}`",
         f"- top_k: `{args.top_k}`",
         "",
     ]
+    if missing_display_labels:
+        header.extend(
+            [
+                "## Missing Predicted Risk Labels",
+                "",
+                "No test cases were found for displayed risk label(s): "
+                + ", ".join(str(label) for label in missing_display_labels),
+                "",
+            ]
+        )
     args.output_md.write_text(
         "\n".join(header + [_markdown_case(case) for case in cases]),
         encoding="utf-8-sig",
