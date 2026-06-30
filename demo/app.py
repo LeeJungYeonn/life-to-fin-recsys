@@ -28,7 +28,7 @@ def load_system():
         processed_dir=RECSYS_DIR / "dataset" / "processed",
         checkpoint_dir=RECSYS_DIR / "checkpoints",
         checkpoint_prefix=None,
-        anchor_csv=RECSYS_DIR / "dataset" / "train.csv",
+        anchor_csv=RECSYS_DIR / "dataset" / "splits" / "train.csv",
         load_knn_anchors=True,
     )
 
@@ -39,7 +39,7 @@ products_catalog = end_to_end_resources.products
 
 @st.cache_data
 def load_test_profiles():
-    path = RECSYS_DIR / "dataset" / "test.csv"
+    path = RECSYS_DIR / "dataset" / "splits" / "test.csv"
     if not path.exists():
         return pd.DataFrame()
     return pd.read_csv(path, usecols=["CASEID", *CATEGORICAL_COLUMNS])
@@ -292,11 +292,11 @@ st.divider()
 st.header("Step 1. Tell us about your lifestyle")
 
 st.sidebar.header("Batch Comparison")
-use_exact_caseid = st.sidebar.checkbox("Use exact test.csv CASEID")
+use_exact_caseid = st.sidebar.checkbox("Use exact test split CASEID")
 selected_caseid = None
 if use_exact_caseid:
     if test_profiles.empty:
-        st.sidebar.warning("dataset/test.csv was not found.")
+        st.sidebar.warning("dataset/splits/test.csv was not found.")
     else:
         selected_caseid = st.sidebar.selectbox(
             "CASEID",
