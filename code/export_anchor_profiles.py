@@ -49,7 +49,7 @@ def row_to_profile(row: pd.Series, *, top_k: int, allow_cma: bool) -> dict:
 def main() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input-csv", type=Path, default=repo_root / "dataset" / "anchor_labeled_data.csv")
+    parser.add_argument("--input-csv", type=Path, default=repo_root / "dataset" / "labeled" / "anchor_labeled_data.csv")
     parser.add_argument(
         "--output-dir",
         type=Path,

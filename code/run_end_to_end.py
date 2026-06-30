@@ -120,7 +120,7 @@ def load_end_to_end_resources(
     naverpay_path: Path | None = None,
     pykrx_path: Path | None = None,
     device: str | torch.device | None = None,
-    anchor_csv: Path = REPO_ROOT / "dataset" / "train.csv",
+    anchor_csv: Path = REPO_ROOT / "dataset" / "splits" / "train.csv",
     load_knn_anchors: bool = True,
     current_x_cat_tensor: torch.Tensor | None = None,
     cardinalities: list[int] | None = None,
@@ -178,7 +178,7 @@ def run_end_to_end(
     pykrx_path: Path | None = None,
     device: str | torch.device | None = None,
     risk_source: str = "model",
-    anchor_csv: Path = REPO_ROOT / "dataset" / "train.csv",
+    anchor_csv: Path = REPO_ROOT / "dataset" / "splits" / "train.csv",
     disable_knn_smoothing: bool = False,
     knn_k: int = 20,
     knn_alpha: float = 0.7,
@@ -308,7 +308,7 @@ def main() -> None:
     parser.add_argument("--pykrx-path", type=Path, default=None)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--risk-source", choices=["model", "allocation"], default="model")
-    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "train.csv")
+    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "splits" / "train.csv")
     parser.add_argument("--disable-knn-smoothing", action="store_true")
     parser.add_argument("--knn-k", type=int, default=20)
     parser.add_argument("--knn-alpha", type=float, default=0.7)

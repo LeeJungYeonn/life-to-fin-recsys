@@ -544,7 +544,7 @@ def _select_models(predictions: dict[str, np.ndarray], names: Iterable[str]) -> 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
-    parser.add_argument("--test-csv", type=Path, default=REPO_ROOT / "dataset" / "test.csv")
+    parser.add_argument("--test-csv", type=Path, default=REPO_ROOT / "dataset" / "splits" / "test.csv")
     parser.add_argument(
         "--batch-details",
         type=Path,

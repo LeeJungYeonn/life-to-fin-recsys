@@ -14,7 +14,7 @@ from portfolio_schema import (
     summarize_processed_split,
 )
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def build_split(
@@ -56,8 +56,8 @@ def build_split(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-dir", type=Path, default=SCRIPT_DIR.parent / "dataset")
-    parser.add_argument("--processed-dir", type=Path, default=SCRIPT_DIR.parent / "dataset" / "processed")
+    parser.add_argument("--dataset-dir", type=Path, default=REPO_ROOT / "dataset" / "splits")
+    parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
     parser.add_argument("--num-clusters", type=int, default=12)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

@@ -139,7 +139,7 @@ def _markdown_case(case: dict[str, object]) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input-csv", type=Path, default=REPO_ROOT / "dataset" / "test.csv")
+    parser.add_argument("--input-csv", type=Path, default=REPO_ROOT / "dataset" / "splits" / "test.csv")
     parser.add_argument("--case-ids", type=int, nargs="+", default=None)
     parser.add_argument(
         "--sample-by",
@@ -160,7 +160,7 @@ def main() -> None:
     parser.add_argument("--pykrx-path", type=Path, default=None)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--risk-source", choices=["model", "allocation"], default="model")
-    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "train.csv")
+    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "splits" / "train.csv")
     parser.add_argument("--enable-knn-smoothing", action="store_true")
     parser.add_argument("--knn-k", type=int, default=20)
     parser.add_argument("--knn-alpha", type=float, default=0.7)

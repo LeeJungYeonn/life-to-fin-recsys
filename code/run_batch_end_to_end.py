@@ -99,8 +99,8 @@ def main() -> None:
     parser.add_argument(
         "--input-csv",
         type=Path,
-        default=REPO_ROOT / "dataset" / "test.csv",
-        help="Use dataset/test.csv for held-out evaluation, or anchor_labeled_data.csv for full-dataset batch inference.",
+        default=REPO_ROOT / "dataset" / "splits" / "test.csv",
+        help="Use dataset/splits/test.csv for held-out evaluation, or dataset/labeled/anchor_labeled_data.csv for full-dataset batch inference.",
     )
     parser.add_argument("--processed-dir", type=Path, default=REPO_ROOT / "dataset" / "processed")
     parser.add_argument("--checkpoint-dir", type=Path, default=REPO_ROOT / "checkpoints")
@@ -112,7 +112,7 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--allow-cma", action="store_true")
     parser.add_argument("--risk-source", choices=["model", "allocation"], default="model")
-    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "train.csv")
+    parser.add_argument("--anchor-csv", type=Path, default=REPO_ROOT / "dataset" / "splits" / "train.csv")
     parser.add_argument("--disable-knn-smoothing", action="store_true")
     parser.add_argument("--knn-k", type=int, default=20)
     parser.add_argument("--knn-alpha", type=float, default=0.7)
